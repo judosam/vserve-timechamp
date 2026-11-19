@@ -1,0 +1,34 @@
+[
+  {
+    "id": "usr-default",
+    "username": "Samuel P",
+    "displayName": "Samuel P",
+    "department": "Engineering",
+    "role": "Administrator / Lead",
+    "machine": "SAM-HP",
+    "status": "Active",
+    "targetDailyHours": 8,
+    "idleThresholdSeconds": 600,
+    "enableScreenshots": false,
+    "enableAppTracking": true,
+    "enableBrowserTracking": true,
+    "createdAt": "2026-11-19T13:48:27.130Z"
+  },
+  {
+    "id": "usr-1795098499868",
+    "username": "sarah.m",
+    "password": "",
+    "displayName": "Sarah Miller",
+    "department": "Productivity & QA",
+    "role": "QA Specialist",
+    "machine": "QA-LAPTOP-01",
+    "status": "Active",
+    "targetDailyHours": 8,
+    "idleThresholdSeconds": 600,
+    "enableScreenshots": false,
+    "enableAppTracking": true,
+    "enableBrowserTracking": true,
+    "createdAt": "2026-11-19T14:28:19.868Z",
+    "updatedAt": "2026-11-19T14:28:19.868Z"
+  }
+]
