@@ -991,9 +991,21 @@ namespace VserveTimeChamp {
                 string ssPath = Path.Combine(ssDir, "ss_" + timeCode + ".jpg");
 
                 Rectangle bounds = Screen.PrimaryScreen.Bounds;
-                using (Bitmap bmp = new Bitmap(bounds.Width, bounds.Height)) {
+                int w = Math.Max(100, bounds.Width);
+                int h = Math.Max(100, bounds.Height);
+                using (Bitmap bmp = new Bitmap(w, h)) {
                     using (Graphics g = Graphics.FromImage(bmp)) {
-                        g.CopyFromScreen(0, 0, 0, 0, bounds.Size);
+                        try {
+                            g.CopyFromScreen(0, 0, 0, 0, new Size(w, h));
+                        } catch {
+                            // Workstation screen is locked or DC unavailable
+                            g.Clear(Color.FromArgb(15, 23, 42));
+                            using (Brush brush = new SolidBrush(Color.FromArgb(148, 163, 184))) {
+                                using (Font font = new Font("Segoe UI", 12f, FontStyle.Bold)) {
+                                    g.DrawString("Workstation Locked / Display Inactive\n" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), font, brush, 40, 40);
+                                }
+                            }
+                        }
                     }
                     bmp.Save(ssPath, System.Drawing.Imaging.ImageFormat.Jpeg);
                 }

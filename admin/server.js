@@ -134,9 +134,34 @@ function captureOnDemandScreenshot() {
     const destPath = path.join(dateDir, fileName);
 
     const escapedDest = destPath.replace(/'/g, "''");
-    const psScript = `Add-Type -AssemblyName System.Windows.Forms,System.Drawing; $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height; $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen(0, 0, 0, 0, $b.Size); $bmp.Save('${escapedDest}', [System.Drawing.Imaging.ImageFormat]::Jpeg); $g.Dispose(); $bmp.Dispose();`;
+    const psScript = `
+Add-Type -AssemblyName System.Windows.Forms,System.Drawing
+$b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+$w = [Math]::Max(100, $b.Width)
+$h = [Math]::Max(100, $b.Height)
+$bmp = New-Object System.Drawing.Bitmap $w, $h
+$g = [System.Drawing.Graphics]::FromImage($bmp)
+try {
+    $g.CopyFromScreen(0, 0, 0, 0, (New-Object System.Drawing.Size $w, $h))
+} catch {
+    # Workstation screen is locked, display sleeping, or non-interactive window station
+    $g.Clear([System.Drawing.Color]::FromArgb(15, 23, 42))
+    $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(148, 163, 184))
+    $font = New-Object System.Drawing.Font('Segoe UI', 13, [System.Drawing.FontStyle]::Bold)
+    $msg = 'Workstation Locked / Display Inactive' + [char]10 + 'Captured: ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+    $g.DrawString($msg, $font, $brush, 40, 40)
+    $brush.Dispose()
+    $font.Dispose()
+}
+$bmp.Save('${escapedDest}', [System.Drawing.Imaging.ImageFormat]::Jpeg)
+$g.Dispose()
+$bmp.Dispose()
+`;
     const b64 = Buffer.from(psScript, 'utf16le').toString('base64');
-    execSync(`powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${b64}`, { timeout: 10000 });
+    execSync(`powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${b64}`, {
+      timeout: 10000,
+      stdio: ['pipe', 'pipe', 'ignore']
+    });
 
     if (fs.existsSync(destPath)) {
       const stat = fs.statSync(destPath);
@@ -509,7 +534,7 @@ function getRealReportRecords() {
 
 // Request dispatcher
 const server = http.createServer((req, res) => {
-  const parsedUrl = url.parse(req.url, true);
+  const parsedUrl = new url.URL(req.url, 'http://' + (req.headers.host || 'localhost:3000'));
   const pathname = parsedUrl.pathname;
 
   res.setHeader('Access-Control-Allow-Origin', '*');
