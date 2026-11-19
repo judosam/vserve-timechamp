@@ -1026,8 +1026,18 @@ const server = http.createServer((req, res) => {
   });
 });
 
+let listenRetries = 0;
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
+    if (listenRetries < 15) {
+      listenRetries++;
+      console.log(`[i] Port ${PORT} in use or TIME_WAIT; retrying in 1.5s (${listenRetries}/15)...`);
+      setTimeout(() => {
+        try { server.close(); } catch {}
+        server.listen(PORT);
+      }, 1500);
+      return;
+    }
     console.error(`\n[!] Port ${PORT} is already in use by another running server instance.`);
     console.error(`    Run 'stop-dashboard.bat' or restart via 'start-dashboard.bat' to free port ${PORT}.\n`);
     process.exit(1);
