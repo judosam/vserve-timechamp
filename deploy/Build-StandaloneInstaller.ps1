@@ -61,11 +61,14 @@ $setupArgs = @(
     "/target:winexe",
     "/optimize+",
     "/platform:anycpu",
+    "/codepage:65001",
     "/r:System.dll",
     "/r:System.Windows.Forms.dll",
     "/r:System.Drawing.dll",
     "/r:System.Core.dll",
     "/r:`"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\System.Web.Extensions.dll`"",
+    "/r:`"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\UIAutomationClient.dll`"",
+    "/r:`"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF\UIAutomationTypes.dll`"",
     "/out:`"$setupExeOut`"",
     "`"$setupCsFile`""
 )

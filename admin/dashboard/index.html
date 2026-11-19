@@ -58,188 +58,259 @@
     button.btn-success:hover { background: #065f46; transform: translateY(-1px); }
     button.btn-download { background: linear-gradient(135deg, #0284c7, #0369a1); border-color: #0284c7; color: #fff; }
     button.btn-download:hover { background: #075985; transform: translateY(-1px); }
-    button.btn-danger { background: rgba(244, 63, 94, 0.15); border-color: rgba(244, 63, 94, 0.3); color: #fda4af; }
-    button.btn-danger:hover { background: var(--unproductive); color: #fff; }
 
     /* Navigation Tabs */
     .nav-tabs { display: flex; gap: 6px; margin-bottom: 22px; border-bottom: 1px solid var(--card-border); padding-bottom: 6px; overflow-x: auto; }
-    .tab-btn { background: transparent; border: none; color: var(--text-muted); font-size: 0.88rem; font-weight: 600; padding: 10px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+    .tab-btn { background: transparent; border: none; color: var(--text-muted); font-size: 0.88rem; font-weight: 600; padding: 10px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
     .tab-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.04); }
     .tab-btn.active { background: var(--card-bg); color: #fff; border: 1px solid var(--card-border); box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
 
-    /* Global Search */
-    .search-box { position: relative; display: inline-flex; align-items: center; }
-    .search-box input { padding-left: 32px; width: 230px; font-size: 0.82rem; background: var(--bg-surface); }
-    .search-icon { position: absolute; left: 10px; width: 14px; height: 14px; color: var(--text-dim); pointer-events: none; }
-
-    /* KPI Summary Cards Grid */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    /* Top KPI Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .stat-card {
-      background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: var(--radius); padding: 18px 20px; position: relative;
-      overflow: hidden; transition: transform 0.2s, border-color 0.2s;
+      background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius);
+      padding: 18px 20px; position: relative; overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s;
     }
-    .stat-card:hover { transform: translateY(-2px); border-color: #2b3e63; }
-    .stat-label { font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; font-weight: 700; }
-    .stat-value { font-size: 1.85rem; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+    .stat-card:hover { transform: translateY(-2px); border-color: #2e4166; }
+    .stat-label { font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); }
+    .stat-value { font-size: 1.85rem; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; margin-top: 4px; }
     .stat-sub { font-size: 0.78rem; margin-top: 6px; display: flex; align-items: center; gap: 6px; color: var(--text-muted); }
+
+    /* Colors */
     .text-green { color: var(--productive); }
-    .text-red { color: var(--unproductive); }
-    .text-blue { color: #38bdf8; }
+    .text-blue { color: var(--accent); }
     .text-amber { color: var(--warning); }
+    .text-rose { color: var(--unproductive); }
+    .text-muted { color: var(--text-muted); }
 
-    /* Filter Bar */
+    /* Live Workforce Pulse Cards */
     .filter-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
-    .filter-pills { display: flex; gap: 6px; align-items: center; }
-    .filter-pill { background: var(--card-bg); border: 1px solid var(--card-border); padding: 5px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; cursor: pointer; color: var(--text-muted); }
-    .filter-pill.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .filter-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter-pill { font-size: 0.78rem; font-weight: 600; padding: 6px 12px; border-radius: 20px; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-muted); cursor: pointer; }
+    .filter-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-    /* Live Employee Grid */
-    .live-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; margin-bottom: 28px; }
-    .live-card {
-      background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column;
-      justify-content: space-between; position: relative; transition: all 0.2s;
+    .search-box { position: relative; min-width: 260px; }
+    .search-box input { width: 100%; padding-left: 34px; }
+    .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text-dim); }
+
+    .live-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; margin-bottom: 26px; }
+    .user-card {
+      background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius);
+      padding: 20px; position: relative; transition: all 0.25s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
-    .live-card:hover { border-color: #2e4368; box-shadow: 0 8px 24px rgba(0,0,0,0.35); transform: translateY(-2px); }
-    .live-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
-    .user-info { display: flex; align-items: center; gap: 12px; }
+    .user-card:hover { border-color: #2b3d60; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+    .user-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .user-profile { display: flex; align-items: center; gap: 12px; }
     .user-avatar {
-      width: 44px; height: 44px; border-radius: 50%;
-      background: linear-gradient(135deg, #2563eb, #1e40af);
+      width: 44px; height: 44px; border-radius: 10px;
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
       display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 1rem; color: #fff;
-      box-shadow: 0 2px 10px rgba(37, 99, 235, 0.4);
-      flex-shrink: 0;
+      font-weight: 800; font-size: 1.05rem; color: #fff;
     }
-    .user-text h3 { font-size: 1.05rem; font-weight: 700; color: #fff; letter-spacing: -0.2px; }
-    .user-text p { font-size: 0.78rem; color: var(--text-muted); margin-top: 1px; }
+    .user-name { font-weight: 700; font-size: 1.02rem; color: #fff; }
+    .user-dept { font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
 
-    .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
-    .status-online { background: rgba(16, 185, 129, 0.14); color: var(--productive); border: 1px solid rgba(16, 185, 129, 0.3); }
-    .status-idle { background: rgba(245, 158, 11, 0.14); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
-    .status-offline { background: rgba(100, 116, 139, 0.18); color: var(--idle); border: 1px solid rgba(100, 116, 139, 0.3); }
-
-    /* Live Digital Counter inside Card */
-    .live-timer-hero {
-      background: #0b1120; border: 1px solid var(--card-border);
-      border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 12px;
-      display: flex; justify-content: space-between; align-items: center;
+    .status-badge {
+      font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: 20px;
+      display: inline-flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.4px;
     }
-    .live-timer-digits { font-family: "Consolas", monospace; font-size: 1.55rem; font-weight: 800; color: #38bdf8; letter-spacing: 0.5px; }
-    .live-timer-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; }
+    .status-badge.active { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-badge.idle { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .status-badge.paused { background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .status-badge.offline { background: rgba(100, 116, 139, 0.15); color: #cbd5e1; border: 1px solid rgba(100, 116, 139, 0.3); }
 
-    .current-activity { background: #0b1120; border: 1px solid var(--card-border); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 14px; font-size: 0.83rem; }
-    .act-title { font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .act-meta { display: flex; align-items: center; gap: 8px; font-size: 0.74rem; color: var(--text-muted); margin-top: 6px; flex-wrap: wrap; }
-    .act-pill { background: rgba(59, 130, 246, 0.15); color: #93c5fd; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.74rem; }
+    .timer-hero {
+      background: #0b1220; border: 1px solid rgba(255, 255, 255, 0.04); border-radius: var(--radius-sm);
+      padding: 14px; text-align: center; margin-bottom: 14px;
+    }
+    .timer-digits { font-family: "Consolas", monospace; font-size: 2.1rem; font-weight: 800; color: #38bdf8; letter-spacing: 1px; }
+    .timer-sub { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); margin-top: 2px; }
 
-    .card-footer-stats { display: flex; justify-content: space-between; font-size: 0.78rem; border-top: 1px solid rgba(51, 65, 85, 0.5); padding-top: 12px; color: var(--text-muted); }
+    .current-activity { background: #0c1424; padding: 12px 14px; border-radius: 8px; margin-bottom: 12px; }
+    .activity-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; display: flex; justify-content: space-between; }
+    .activity-app { font-weight: 700; font-size: 0.88rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .activity-title { font-size: 0.76rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+    .prod-progress { height: 6px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 10px; }
+    .prod-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+
+    .card-meta-row { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
 
     /* Tables, Cards & Grids */
     .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 22px; margin-bottom: 24px; }
-    .card-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; color: #fff; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .card-title { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+
     table { width: 100%; border-collapse: collapse; font-size: 0.84rem; text-align: left; }
     th { padding: 12px 14px; color: var(--text-muted); border-bottom: 1px solid var(--card-border); font-weight: 600; text-transform: uppercase; font-size: 0.74rem; letter-spacing: 0.5px; }
-    td { padding: 12px 14px; border-bottom: 1px solid rgba(51, 65, 85, 0.4); vertical-align: middle; }
-    tr:hover td { background: rgba(51, 65, 85, 0.25); }
+    td { padding: 12px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); vertical-align: middle; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
-    .tag { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.74rem; font-weight: 600; }
-    .tag-prod { background: rgba(16, 185, 129, 0.15); color: var(--productive); border: 1px solid rgba(16, 185, 129, 0.3); }
-    .tag-unprod { background: rgba(244, 63, 94, 0.15); color: var(--unproductive); border: 1px solid rgba(244, 63, 94, 0.3); }
-    .tag-neutral { background: rgba(14, 165, 233, 0.15); color: var(--neutral); border: 1px solid rgba(14, 165, 233, 0.3); }
+    .badge-tag { font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; font-weight: 600; display: inline-block; }
+    .badge-prod { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .badge-unprod { background: rgba(244, 63, 94, 0.15); color: #fb7185; }
+    .badge-neutral { background: rgba(14, 165, 233, 0.15); color: #38bdf8; }
 
-    /* Progress bar */
-    .bar-container { width: 100%; background: #0b1120; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 6px; }
-    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
-    .bar-fill.prod { background: var(--productive); }
-    .bar-fill.neutral { background: var(--neutral); }
-    .bar-fill.unprod { background: var(--unproductive); }
+    .share-bar-container { display: flex; align-items: center; gap: 8px; }
+    .share-bar { height: 6px; border-radius: 3px; background: var(--accent); }
 
-    /* Modals */
+    /* Screenshots Gallery Tab */
+    .screenshots-controls { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+    .screenshots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; margin-bottom: 24px; }
+    .screenshot-card {
+      background: #0d1527; border: 1px solid var(--card-border); border-radius: var(--radius);
+      overflow: hidden; transition: transform 0.2s, border-color 0.2s; cursor: pointer;
+    }
+    .screenshot-card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .screenshot-thumb-container { position: relative; width: 100%; height: 170px; background: #050811; overflow: hidden; }
+    .screenshot-thumb { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+    .screenshot-card:hover .screenshot-thumb { transform: scale(1.04); }
+    .screenshot-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.45); opacity: 0; transition: opacity 0.2s;
+      display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; color: #fff;
+    }
+    .screenshot-card:hover .screenshot-overlay { opacity: 1; }
+    .screenshot-info { padding: 12px 14px; }
+    .screenshot-meta-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; color: var(--text-muted); }
+
+    /* Modal Lightbox */
     .modal-backdrop {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px);
-      display: none; align-items: center; justify-content: center;
-      z-index: 1000; padding: 20px;
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 9999;
+      display: none; align-items: center; justify-content: center; padding: 24px;
     }
     .modal-box {
-      background: var(--bg-surface); border: 1px solid var(--accent);
-      border-radius: var(--radius); width: 100%; max-width: 580px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.6); overflow: hidden;
-      animation: modalIn 0.2s ease-out;
+      background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius);
+      max-width: 640px; width: 100%; box-shadow: 0 16px 48px rgba(0,0,0,0.6); overflow: hidden;
     }
-    @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-    .modal-header { padding: 16px 20px; background: #0b1120; border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; }
-    .modal-header h3 { font-size: 1.1rem; font-weight: 700; color: #fff; }
-    .modal-body { padding: 20px; max-height: 80vh; overflow-y: auto; }
-    .modal-footer { padding: 14px 20px; background: #0b1120; border-top: 1px solid var(--card-border); display: flex; justify-content: flex-end; gap: 10px; }
+    .modal-box-lg { max-width: 960px; width: 95vw; max-height: 92vh; display: flex; flex-direction: column; }
+    .modal-header { padding: 18px 22px; border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 22px; max-height: 75vh; overflow-y: auto; }
+    .modal-footer { padding: 16px 22px; border-top: 1px solid var(--card-border); display: flex; justify-content: flex-end; gap: 10px; background: #0c1424; }
 
-    /* Form Styles */
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 14px; }
     .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; }
-    .form-group input, .form-group textarea, .form-group select { width: 100%; }
-    .checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.84rem; }
+    .form-group label { display: block; font-size: 0.76rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.82rem; color: var(--text-muted); }
     .checkbox-group input { width: auto; }
 
-    /* Two column analytics */
-    .two-col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 900px) { .two-col-grid { grid-template-columns: 1fr; } }
+    .toast-msg {
+      position: fixed; bottom: 24px; right: 28px; background: #1e293b; color: #fff;
+      padding: 12px 20px; border-radius: 8px; border: 1px solid #334155; font-size: 0.84rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 10000; display: none;
+    }
 
-    /* Empty state */
-    .empty-state { text-align: center; padding: 48px 20px; background: rgba(30, 41, 59, 0.4); border: 1px dashed var(--card-border); border-radius: var(--radius); }
-    .empty-state h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
-    .empty-state p { font-size: 0.85rem; color: var(--text-muted); max-width: 480px; margin: 0 auto 16px; line-height: 1.5; }
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+    .empty-state h3 { font-size: 1.15rem; color: #fff; margin-bottom: 8px; }
+    .empty-state p { font-size: 0.85rem; max-width: 460px; margin: 0 auto; }
 
-    /* Toast */
-    .toast { position: fixed; bottom: 24px; right: 24px; background: #059669; color: #fff; padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 0.88rem; box-shadow: 0 4px 16px rgba(0,0,0,0.4); display: none; z-index: 2000; }
+    /* Admin Authentication Overlay & Strict RBAC Gate */
+    .admin-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(4, 7, 13, 0.94);
+      backdrop-filter: blur(18px);
+      z-index: 999999;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .admin-login-card {
+      background: #0f172a; border: 1px solid #1e293b;
+      border-radius: 16px; width: 100%; max-width: 460px;
+      padding: 34px 30px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 50px rgba(37, 99, 235, 0.2);
+      animation: modalFadeIn 0.25s ease-out;
+    }
+    .admin-login-header { text-align: center; margin-bottom: 22px; }
+    .admin-login-badge {
+      width: 58px; height: 58px; margin: 0 auto 14px;
+      background: linear-gradient(135deg, #2563eb, #10b981);
+      border-radius: 14px; display: flex; align-items: center; justify-content: center;
+      font-size: 1.85rem; box-shadow: 0 6px 24px rgba(37, 99, 235, 0.35);
+    }
+    .admin-login-header h2 { font-size: 1.45rem; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+    .admin-pill-badge {
+      display: inline-block; font-size: 0.7rem; font-weight: 800;
+      padding: 4px 12px; border-radius: 20px; margin-top: 8px;
+      background: rgba(37, 99, 235, 0.2); color: #60a5fa;
+      border: 1px solid rgba(37, 99, 235, 0.4); text-transform: uppercase; letter-spacing: 0.8px;
+    }
+    .admin-login-notice {
+      background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 0.78rem; color: #fde68a; line-height: 1.45;
+    }
+    .admin-login-notice strong { color: #fbbf24; display: block; margin-bottom: 3px; font-size: 0.72rem; letter-spacing: 0.5px; }
+    .admin-login-error {
+      background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5; font-size: 0.82rem; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; line-height: 1.4;
+    }
+    .admin-login-footer { margin-top: 24px; text-align: center; font-size: 0.72rem; color: var(--text-dim); }
+    .btn-quick-chip {
+      background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #93c5fd; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; cursor: pointer; margin-left: 6px;
+      transition: all 0.2s;
+    }
+    .btn-quick-chip:hover { background: rgba(59, 130, 246, 0.25); border-color: #3b82f6; color: #fff; }
+
+    /* Admin User Chip in Header */
+    .admin-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(30, 41, 59, 0.85); border: 1px solid var(--card-border);
+      padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; color: #e2e8f0;
+    }
+    .admin-chip .admin-shield { font-size: 0.95rem; }
+    .btn-signout {
+      background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5; font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 12px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-signout:hover { background: rgba(239, 68, 68, 0.35); color: #fff; transform: translateY(-1px); }
   </style>
 </head>
 <body>
 
-  <!-- Toast Notification -->
-  <div id="toast" class="toast">Action completed successfully</div>
-
-  <!-- Header -->
+  <!-- Top Header Bar -->
   <div class="header">
     <div class="header-brand">
       <div class="logo-badge">TC</div>
       <div class="title-text">
-        <h1>
-          Vserve TimeChamp
-          <span class="org-pill">Enterprise Fleet</span>
-        </h1>
-        <p>Real-Time Workforce Active-Time Tracking, App Telemetry & Policy Control</p>
+        <h1>VSERVE TIMECHAMP <span class="org-pill">Enterprise Workforce Hub</span></h1>
+        <p>Real-Time Workforce Activity, Idle Detection, Browser Inspection & Screenshot Auditing</p>
       </div>
     </div>
+
     <div class="header-actions">
-      <div class="badge-live" onclick="toggleAutoPolling()" id="livePollingBtn" title="Click to pause or resume real-time sync">
+      <!-- 1-Click Standalone Executable Download -->
+      <button class="btn-download" onclick="downloadClientExe()" title="Download single .exe for employee workstations">
+        <span>⬇</span> Download Client (.exe)
+      </button>
+
+      <div class="badge-live" onclick="toggleAutoPolling()" title="Click to pause/resume auto polling">
         <span class="pulse-dot" id="livePollingDot"></span>
         <span id="livePollingText">Live Telemetry Active (3s)</span>
       </div>
-      <button class="btn-download" onclick="downloadClientExe()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-        Download Client (.exe)
-      </button>
-      <button class="btn-success" onclick="openCreateUserModal()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-        + Add Employee
-      </button>
-      <button class="btn-primary" onclick="triggerRefresh()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+
+      <button onclick="triggerRefresh()" title="Refresh telemetry immediately">
         Refresh
       </button>
+
+      <!-- Administrator Account Badge & Sign Out -->
+      <div class="admin-chip" id="adminHeaderChip">
+        <span class="admin-shield">🛡️</span>
+        <span id="adminHeaderUser">Administrator</span>
+        <button class="btn-signout" onclick="handleAdminSignOut()" title="Sign Out of Admin Portal">Sign Out</button>
+      </div>
     </div>
   </div>
 
-  <!-- Navigation Tabs -->
+  <!-- Navigation Tabs (6 Tabs) -->
   <div class="nav-tabs">
     <button class="tab-btn active" onclick="switchTab('live')">
       <span>🟢</span> Live Workforce Pulse
     </button>
     <button class="tab-btn" onclick="switchTab('analytics')">
       <span>📊</span> Web & App Analytics
+    </button>
+    <button class="tab-btn" onclick="switchTab('screenshots')">
+      <span>📸</span> Screenshots Viewer
     </button>
     <button class="tab-btn" onclick="switchTab('reports')">
       <span>⏱️</span> Shift Timesheets
@@ -274,7 +345,7 @@
         <div class="stat-sub text-muted">10-Minute Timeout In Place</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Active Workstations</div>
+        <div class="stat-label">Workforce Status</div>
         <div class="stat-value" id="liveOnlineCount">0 Online</div>
         <div class="stat-sub text-green" id="liveAgentStatus">Live Telemetry Feed Active</div>
       </div>
@@ -285,12 +356,12 @@
       <div class="filter-pills">
         <span class="filter-pill active" onclick="setLiveStatusFilter('all', this)">All Workstations</span>
         <span class="filter-pill" onclick="setLiveStatusFilter('active', this)">🟢 Active Only</span>
-        <span class="filter-pill" onclick="setLiveStatusFilter('idle', this)">⏸️ Idle</span>
+        <span class="filter-pill" onclick="setLiveStatusFilter('idle', this)">⏸ Idle / Away</span>
         <span class="filter-pill" onclick="setLiveStatusFilter('offline', this)">⚪ Offline</span>
       </div>
       <div class="search-box">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="liveSearchInput" placeholder="Filter employee or machine..." oninput="applyLiveFilters()">
+        <input type="text" id="liveSearchInput" placeholder="Filter employee, app or workstation..." oninput="applyLiveFilters()">
       </div>
     </div>
 
@@ -298,7 +369,7 @@
     <div class="live-grid" id="liveGrid">
       <div class="empty-state" style="grid-column: 1 / -1;">
         <h3>Listening for live workstation heartbeats...</h3>
-        <p>Run <code>vserve-timechamp-setup.exe</code> on any workstation to log in and begin streaming telemetry.</p>
+        <p>When employees start <code>vserve-timechamp-setup.exe</code> and sign in, their live cards appear here instantly.</p>
       </div>
     </div>
   </div>
@@ -309,41 +380,41 @@
   <div id="tab-analytics" style="display:none;">
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Total Desktop Application Time</div>
-        <div class="stat-value text-blue" id="anTotalAppTime">--:--:--</div>
-        <div class="stat-sub text-muted">Foreground focused windows</div>
+        <div class="stat-label">Top Tracked Process</div>
+        <div class="stat-value text-blue" id="statTopApp">--</div>
+        <div class="stat-sub text-muted" id="statTopAppTime">0h 0m total usage</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Total Tracked Web Browsing</div>
-        <div class="stat-value text-green" id="anTotalWebTime">--:--:--</div>
-        <div class="stat-sub text-muted">Chrome, Edge & Brave extraction</div>
+        <div class="stat-label">Top Visited Domain</div>
+        <div class="stat-value text-green" id="statTopWeb">--</div>
+        <div class="stat-sub text-muted" id="statTopWebTime">0h 0m total browsing</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Productive Work Time</div>
-        <div class="stat-value text-green" id="anProductiveTime">--:--:--</div>
-        <div class="stat-sub text-green" id="anProdPctSub">0% of total activity</div>
+        <div class="stat-label">Productive Time Share</div>
+        <div class="stat-value text-green" id="statProdRatio">--%</div>
+        <div class="stat-sub text-muted">Dev, Office & Work Tools</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Neutral / System Time</div>
-        <div class="stat-value text-amber" id="anNeutralTime">--:--:--</div>
-        <div class="stat-sub text-muted">Desktop, utilities, explorer</div>
+        <div class="stat-label">Unproductive Time Share</div>
+        <div class="stat-value text-rose" id="statUnprodRatio">--%</div>
+        <div class="stat-sub text-muted">Social & Non-work sites</div>
       </div>
     </div>
 
-    <div class="two-col-grid">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
       <!-- Applications Table -->
       <div class="card">
         <div class="card-title">
-          <span>Top Desktop Applications</span>
-          <input type="text" id="appSearch" placeholder="Search app..." style="font-size:0.8rem; padding:4px 10px; width:160px;" oninput="filterAnalytics()">
+          <span>Desktop Applications Telemetry</span>
+          <input type="text" id="appSearch" placeholder="Search app..." style="font-size:0.78rem; padding:4px 8px; width:160px;" oninput="filterAnalyticsTables()">
         </div>
         <table>
           <thead>
             <tr>
               <th>Application</th>
               <th>Category</th>
-              <th>Duration</th>
-              <th>Share %</th>
+              <th>Total Duration</th>
+              <th>Usage Share</th>
             </tr>
           </thead>
           <tbody id="appTableBody">
@@ -355,16 +426,16 @@
       <!-- Websites Table -->
       <div class="card">
         <div class="card-title">
-          <span>Top Visited Websites & URLs</span>
-          <input type="text" id="webSearch" placeholder="Search domain..." style="font-size:0.8rem; padding:4px 10px; width:160px;" oninput="filterAnalytics()">
+          <span>Web Browsing Domains (UI Automation)</span>
+          <input type="text" id="webSearch" placeholder="Search domain..." style="font-size:0.78rem; padding:4px 8px; width:160px;" oninput="filterAnalyticsTables()">
         </div>
         <table>
           <thead>
             <tr>
-              <th>Domain / Website</th>
+              <th>Domain / Site</th>
               <th>Category</th>
-              <th>Browsing Time</th>
-              <th>Share %</th>
+              <th>Total Duration</th>
+              <th>Browsing Share</th>
             </tr>
           </thead>
           <tbody id="webTableBody">
@@ -376,15 +447,47 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- TAB 3: SHIFT TIMESHEETS & ATTENDANCE LOGS                             -->
+  <!-- TAB 3: SCREENSHOTS VIEWER                                             -->
+  <!-- ===================================================================== -->
+  <div id="tab-screenshots" style="display:none;">
+    <div class="card">
+      <div class="card-title">
+        <div>
+          <span>Workstation Desktop Screenshots</span>
+          <div style="font-size:0.8rem; color:var(--text-muted); font-weight:normal; margin-top:3px;">
+            Periodic and on-demand desktop captures with employee attribution and timestamp evidence.
+          </div>
+        </div>
+
+        <div class="screenshots-controls">
+          <input type="date" id="ssDateFilter" onchange="fetchScreenshots()">
+          <select id="ssUserFilter" onchange="fetchScreenshots()">
+            <option value="all">All Employees</option>
+          </select>
+          <button class="btn-primary" onclick="triggerScreenshotCapture()">📸 Take Instant Screenshot</button>
+          <button onclick="fetchScreenshots()">Refresh</button>
+        </div>
+      </div>
+
+      <!-- Screenshots Thumbnail Grid -->
+      <div class="screenshots-grid" id="screenshotsGrid">
+        <div class="empty-state" style="grid-column: 1 / -1;">
+          <h3>Loading captured screenshots...</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 4: SHIFT TIMESHEETS & ATTENDANCE LOGS                             -->
   <!-- ===================================================================== -->
   <div id="tab-reports" style="display:none;">
     <div class="card">
       <div class="card-title">
-        <span>Consolidated Shift Timesheets & Attendance</span>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <input type="text" id="reportSearch" placeholder="Filter employee, machine, date..." style="font-size:0.8rem; padding:6px 12px; width:220px;" oninput="filterReportTable()">
-          <button onclick="exportCurrentView()">Export CSV</button>
+        <span>Verified Shift Attendance Records</span>
+        <div style="display:flex; gap:10px;">
+          <input type="text" id="reportSearch" placeholder="Search user or date..." style="font-size:0.78rem; padding:4px 8px; width:180px;" oninput="filterReportTable()">
+          <button class="btn-primary" onclick="exportReportsCSV()">Export CSV</button>
         </div>
       </div>
       <table>
@@ -392,12 +495,12 @@
           <tr>
             <th>Date</th>
             <th>Employee</th>
-            <th>Machine</th>
-            <th>Active Time</th>
-            <th>Away / Idle</th>
+            <th>Workstation</th>
+            <th>Active Duration</th>
+            <th>Idle Duration</th>
+            <th>Pauses</th>
             <th>Productivity %</th>
-            <th>Top Activity</th>
-            <th>Status</th>
+            <th>Shift Status</th>
           </tr>
         </thead>
         <tbody id="reportTableBody">
@@ -408,7 +511,7 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- TAB 4: EMPLOYEE DIRECTORY & LOGINS ("when admin user created login")   -->
+  <!-- TAB 5: EMPLOYEE DIRECTORY & LOGINS ("when admin user created login")   -->
   <!-- ===================================================================== -->
   <div id="tab-users" style="display:none;">
     <div class="card">
@@ -444,7 +547,7 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- TAB 5: FLEET POLICIES & RULES                                         -->
+  <!-- TAB 6: FLEET POLICIES & RULES                                         -->
   <!-- ===================================================================== -->
   <div id="tab-policies" style="display:none;">
     <div class="card">
@@ -486,13 +589,35 @@
     <div class="card">
       <div class="card-title">1-Click Client Deployment Instructions</div>
       <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
-        To deploy the tracker on any employee workstation with zero configuration:
+        To deploy the tracker on any employee workstation with zero external installation:
       </p>
       <div style="background:#090d16; padding:16px; border-radius:8px; font-family:monospace; font-size:0.85rem; line-height:1.7; border:1px solid var(--card-border);">
         <strong>1. Single Executable:</strong> Download <code>vserve-timechamp-setup.exe</code> and double click on employee machine.<br>
         <strong>2. Login Popup:</strong> Employee signs in using the credentials created above in "Employee Logins & Directory".<br>
         <strong>3. Minimal Tracking Window:</strong> Live clock begins ticking, telemetry streams to this Admin Portal, and auto-start ensures persistent tracking on reboot.<br>
         <strong>4. Tray Integration:</strong> Minimizes silently to system notification tray when closed.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: SCREENSHOT FULL LIGHTBOX                                       -->
+  <!-- ===================================================================== -->
+  <div id="screenshotLightboxModal" class="modal-backdrop">
+    <div class="modal-box modal-box-lg">
+      <div class="modal-header">
+        <h3 id="lightboxTitle">Screenshot Preview</h3>
+        <button onclick="closeLightboxModal()" style="padding:4px 8px; font-size:0.8rem; background:transparent; border:none; color:var(--text-muted);">✕</button>
+      </div>
+      <div class="modal-body" style="text-align:center; padding:14px; background:#050811;">
+        <img id="lightboxImg" src="" alt="Screenshot" style="max-width:100%; max-height:68vh; border-radius:6px; object-fit:contain; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+      </div>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <div id="lightboxMeta" style="font-size:0.8rem; color:var(--text-muted); text-align:left;"></div>
+        <div>
+          <button onclick="downloadLightboxImage()">Download JPEG</button>
+          <button class="btn-primary" onclick="closeLightboxModal()">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -571,6 +696,53 @@
     </div>
   </div>
 
+  <!-- ===================================================================== -->
+  <!-- ADMIN AUTHENTICATION GATE (RESTRICTED TO ADMINISTRATORS ONLY)         -->
+  <!-- ===================================================================== -->
+  <div id="adminLoginOverlay" class="admin-overlay" style="display: flex;">
+    <div class="admin-login-card">
+      <div class="admin-login-header">
+        <div class="admin-login-badge">🛡️</div>
+        <h2>Vserve TimeChamp</h2>
+        <div class="admin-pill-badge">ADMINISTRATOR PORTAL ACCESS</div>
+      </div>
+
+      <div class="admin-login-notice">
+        <strong>RESTRICTED PORTAL ACCESS</strong>
+        This web portal is strictly restricted to authorized administrators. Tracked employees must run the <strong>Vserve-TimeChamp Desktop Agent</strong> on their workstation.
+      </div>
+
+      <div id="adminLoginError" class="admin-login-error" style="display: none;"></div>
+
+      <form id="adminLoginForm" onsubmit="handleAdminLogin(event)">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Administrator Username</label>
+          <input type="text" id="adminUsername" placeholder="e.g. Samuel P or admin" required autocomplete="username" style="width:100%; margin-top:5px; padding:10px 14px; font-size:0.95rem;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Password / Key (Optional if blank)</label>
+          <input type="password" id="adminPassword" placeholder="Enter password if configured" autocomplete="current-password" style="width:100%; margin-top:5px; padding:10px 14px; font-size:0.95rem;">
+        </div>
+
+        <div class="admin-quick-select" style="margin-bottom: 18px; font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center;">
+          <span>Admin Profile:</span>
+          <button type="button" class="btn-quick-chip" onclick="fillAdminUser('Samuel P')">Samuel P (Lead)</button>
+        </div>
+
+        <button type="submit" id="btnAdminSubmit" class="btn-primary" style="width:100%; justify-content:center; padding:12px; font-size:0.95rem; font-weight:700;">
+          <span>🔐</span> Sign In to Admin Console
+        </button>
+      </form>
+
+      <div class="admin-login-footer">
+        <span>Vserve TimeChamp Enterprise • Role-Based Access Control</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-msg" id="toast"></div>
+
   <!-- JavaScript Application Logic -->
   <script>
     let activeTab = 'live';
@@ -578,8 +750,161 @@
     let currentReportRecords = [];
     let currentAnalytics = { applications: [], websites: [] };
     let currentUsersList = [];
+    let currentScreenshots = [];
     let liveFilterStatus = 'all';
     let autoPolling = true;
+    let currentLightboxUrl = '';
+
+    // =========================================================================
+    // ADMINISTRATOR SESSION & STRICT RBAC AUTHENTICATION
+    // =========================================================================
+    function getAdminToken() {
+      return localStorage.getItem('vt_admin_token') || '';
+    }
+
+    function getAdminUser() {
+      try {
+        return JSON.parse(localStorage.getItem('vt_admin_user') || 'null');
+      } catch { return null; }
+    }
+
+    function showAdminLoginModal(msg = '') {
+      const overlay = document.getElementById('adminLoginOverlay');
+      const errBox = document.getElementById('adminLoginError');
+      if (overlay) overlay.style.display = 'flex';
+      if (errBox) {
+        if (msg) {
+          errBox.innerText = msg;
+          errBox.style.display = 'block';
+        } else {
+          errBox.style.display = 'none';
+        }
+      }
+    }
+
+    function hideAdminLoginModal() {
+      const overlay = document.getElementById('adminLoginOverlay');
+      if (overlay) overlay.style.display = 'none';
+    }
+
+    function fillAdminUser(name) {
+      const input = document.getElementById('adminUsername');
+      if (input) {
+        input.value = name;
+        input.focus();
+      }
+    }
+
+    function updateAdminHeader(user) {
+      const label = document.getElementById('adminHeaderUser');
+      if (label && user) {
+        label.innerText = `${user.displayName || user.username} (${user.role || 'Admin'})`;
+      }
+    }
+
+    async function apiFetch(endpoint, options = {}) {
+      const token = getAdminToken();
+      const headers = Object.assign({
+        'Content-Type': 'application/json',
+        'X-Admin-Token': token,
+        'Authorization': token ? `Bearer ${token}` : ''
+      }, options.headers || {});
+
+      try {
+        const res = await fetch(endpoint, Object.assign({}, options, { headers }));
+        if (res.status === 401) {
+          localStorage.removeItem('vt_admin_token');
+          localStorage.removeItem('vt_admin_user');
+          showAdminLoginModal('Session expired or unauthorized. Administrator sign-in required.');
+          throw new Error('Unauthorized');
+        }
+        return res;
+      } catch (err) {
+        if (err.message === 'Unauthorized') throw err;
+        throw err;
+      }
+    }
+
+    async function handleAdminLogin(e) {
+      if (e) e.preventDefault();
+      const username = document.getElementById('adminUsername').value.trim();
+      const password = document.getElementById('adminPassword').value.trim();
+      const errBox = document.getElementById('adminLoginError');
+      const submitBtn = document.getElementById('btnAdminSubmit');
+
+      errBox.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span>⏳</span> Verifying Administrator Privileges...';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success && data.token) {
+          localStorage.setItem('vt_admin_token', data.token);
+          localStorage.setItem('vt_admin_user', JSON.stringify(data.user));
+          updateAdminHeader(data.user);
+          hideAdminLoginModal();
+          showToast(`Welcome, Administrator ${data.user.displayName || data.user.username}`);
+          initDashboard();
+        } else {
+          errBox.innerText = data.error || 'Authentication failed. Please verify administrator credentials.';
+          errBox.style.display = 'block';
+        }
+      } catch (err) {
+        errBox.innerText = 'Unable to connect to server: ' + err.message;
+        errBox.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>🔐</span> Sign In to Admin Console';
+      }
+    }
+
+    async function handleAdminSignOut() {
+      const token = getAdminToken();
+      if (token) {
+        try {
+          await fetch('/api/admin/logout', {
+            method: 'POST',
+            headers: { 'X-Admin-Token': token, 'Authorization': `Bearer ${token}` }
+          });
+        } catch (err) {}
+      }
+      localStorage.removeItem('vt_admin_token');
+      localStorage.removeItem('vt_admin_user');
+      showAdminLoginModal('Signed out. Administrator credentials required to access portal.');
+      showToast('Signed out of Admin Portal.');
+    }
+
+    async function checkAdminSession() {
+      const token = getAdminToken();
+      if (!token) {
+        showAdminLoginModal();
+        return false;
+      }
+      try {
+        const res = await fetch('/api/admin/check', {
+          headers: {
+            'X-Admin-Token': token,
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            updateAdminHeader(data.user);
+            hideAdminLoginModal();
+            return true;
+          }
+        }
+      } catch (err) {}
+      showAdminLoginModal('Session expired. Administrator credentials required.');
+      return false;
+    }
 
     function showToast(msg) {
       const toast = document.getElementById('toast');
@@ -612,6 +937,7 @@
     function triggerRefresh() {
       if (activeTab === 'live') fetchLiveTelemetry();
       else if (activeTab === 'analytics') fetchAnalytics();
+      else if (activeTab === 'screenshots') fetchScreenshots();
       else if (activeTab === 'reports') fetchReportRecords();
       else if (activeTab === 'users') fetchUsers();
       showToast('Telemetry refreshed.');
@@ -620,9 +946,9 @@
     function switchTab(tabId) {
       activeTab = tabId;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('#tab-live, #tab-analytics, #tab-reports, #tab-users, #tab-policies').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('#tab-live, #tab-analytics, #tab-screenshots, #tab-reports, #tab-users, #tab-policies').forEach(el => el.style.display = 'none');
 
-      const tabs = ['live', 'analytics', 'reports', 'users', 'policies'];
+      const tabs = ['live', 'analytics', 'screenshots', 'reports', 'users', 'policies'];
       const idx = tabs.indexOf(tabId);
       if (idx >= 0) {
         document.querySelectorAll('.tab-btn')[idx].classList.add('active');
@@ -631,6 +957,7 @@
 
       if (tabId === 'live') fetchLiveTelemetry();
       else if (tabId === 'analytics') fetchAnalytics();
+      else if (tabId === 'screenshots') fetchScreenshots();
       else if (tabId === 'reports') fetchReportRecords();
       else if (tabId === 'users') fetchUsers();
       else if (tabId === 'policies') loadFleetConfigurations();
@@ -652,7 +979,7 @@
     // --- TAB 1: LIVE WORKFORCE PULSE ---
     async function fetchLiveTelemetry() {
       try {
-        const res = await fetch('/api/live');
+        const res = await apiFetch('/api/live');
         if (res.ok) {
           const data = await res.json();
           currentLiveUsers = Array.isArray(data) ? data : [];
@@ -698,127 +1025,130 @@
       if (!filtered || filtered.length === 0) {
         grid.innerHTML = `
           <div class="empty-state" style="grid-column: 1 / -1;">
-            <h3>No Workstations Found</h3>
-            <p>
-              ${currentLiveUsers.length === 0 ? 'No active workstations reporting heartbeats yet. Double-click <code>vserve-timechamp-setup.exe</code> on a workstation to start tracking.' : 'No workstations match the selected filter.'}
-            </p>
-            <button class="btn-download" onclick="downloadClientExe()">Download Client (.exe)</button>
+            <h3>No workstations match current filter</h3>
+            <p>Try switching status filters or clearing the search query.</p>
           </div>
         `;
       } else {
         grid.innerHTML = filtered.map(u => {
-          const actSec = u.activeSeconds || 0;
-          const idleSec = u.idleSeconds || 0;
-          const score = typeof u.prodPct === 'number' ? u.prodPct : (actSec > 0 ? Math.round(((u.productiveSeconds || 0) / actSec) * 100) : 100);
-          const st = u.effectiveStatus || u.status || 'Active';
+          const st = (u.effectiveStatus || u.status || 'Active').toLowerCase();
+          const badgeClass = st === 'active' ? 'active' : (st === 'idle' ? 'idle' : (st === 'paused' ? 'paused' : 'offline'));
+          const badgeIcon = st === 'active' ? '● ACTIVE' : (st === 'idle' ? '⏸ IDLE' : (st === 'paused' ? '⏸ PAUSED' : '⚪ OFFLINE'));
+          const prodPct = u.prodPct !== undefined ? Math.round(u.prodPct) : (u.activeSeconds > 0 ? Math.round((u.productiveSeconds / u.activeSeconds) * 100) : 100);
+          const barColor = prodPct >= 75 ? '#10b981' : (prodPct >= 50 ? '#f59e0b' : '#f43f5e');
 
-          let badgeClass = 'status-online';
-          if (st.toLowerCase() === 'idle') badgeClass = 'status-idle';
-          if (st.toLowerCase() === 'offline') badgeClass = 'status-offline';
+          let initials = 'TC';
+          const name = u.displayName || u.user || 'Unknown';
+          const parts = name.split(' ');
+          if (parts.length > 1 && parts[0] && parts[1]) initials = (parts[0][0] + parts[1][0]).toUpperCase();
+          else if (name.length >= 2) initials = name.slice(0, 2).toUpperCase();
 
-          const initials = (u.user || 'U').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+          const currentApp = u.currentApp || 'Desktop / Idle';
+          const windowTitle = u.windowTitle || 'No active window reported';
+          const urlStr = u.url ? `<div style="font-size:0.73rem; color:#38bdf8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;">🌐 ${escapeHtml(u.url)}</div>` : '';
 
           return `
-            <div class="live-card" data-username="${escapeHtml(u.user)}">
-              <div class="live-card-top">
-                <div class="user-info">
-                  <div class="user-avatar">${initials}</div>
-                  <div class="user-text">
-                    <h3>${escapeHtml(u.user || 'Unknown User')}</h3>
-                    <p>${escapeHtml(u.machine || 'Workstation')} ${u.isInstalledSystem ? '<span style="color:#38bdf8;">• Local Machine</span>' : ''}</p>
+            <div class="user-card">
+              <div class="user-card-header">
+                <div class="user-profile">
+                  <div class="user-avatar">${escapeHtml(initials)}</div>
+                  <div>
+                    <div class="user-name">${escapeHtml(name)}</div>
+                    <div class="user-dept">${escapeHtml(u.department || 'Engineering')} • ${escapeHtml(u.machine || 'Workstation')}</div>
                   </div>
                 </div>
-                <div class="status-badge ${badgeClass}">
-                  <span class="pulse-dot"></span> ${escapeHtml(st)}
-                </div>
+                <div class="status-badge ${badgeClass}">${badgeIcon}</div>
               </div>
 
-              <!-- Live Digital Timer -->
-              <div class="live-timer-hero">
-                <div>
-                  <div class="live-timer-digits" id="timer-${escapeHtml(u.user)}">${fmtHMS(actSec)}</div>
-                  <div class="live-timer-label">Today's Active Work Time</div>
-                </div>
-                <div style="text-align:right;">
-                  <span class="tag tag-prod">${score}% Prod</span>
-                </div>
+              <div class="timer-hero">
+                <div class="timer-digits">${fmtHMS(u.activeSeconds || 0)}</div>
+                <div class="timer-sub">Today's Active Work Time</div>
               </div>
 
               <div class="current-activity">
-                <div class="act-title" title="${escapeHtml(u.windowTitle || 'Desktop / System')}">
-                  ${escapeHtml(u.windowTitle || 'Desktop / System')}
+                <div class="activity-label">
+                  <span>Focused Application</span>
+                  <span style="color:${barColor}; font-weight:700;">${prodPct}% Productive</span>
                 </div>
-                <div class="act-meta">
-                  <span>App:</span>
-                  <span class="act-pill">${escapeHtml(u.currentApp || 'None')}</span>
-                  ${u.url ? `<span>Web:</span> <span class="act-pill" style="background:rgba(16,185,129,0.15); color:#6ee7b7;">${escapeHtml(u.url)}</span>` : ''}
+                <div class="activity-app">💻 ${escapeHtml(currentApp)}</div>
+                ${urlStr}
+                <div class="activity-title" title="${escapeHtml(windowTitle)}">${escapeHtml(windowTitle)}</div>
+                <div class="prod-progress">
+                  <div class="prod-bar" style="width:${prodPct}%; background:${barColor};"></div>
                 </div>
               </div>
 
-              <div class="card-footer-stats">
-                <span>Active: <strong class="text-blue">${fmtHMS(actSec)}</strong></span>
-                <span>Away: <strong class="text-amber">${fmtHMS(idleSec)}</strong></span>
+              <div class="card-meta-row">
+                <span>Away / Idle: <strong class="text-amber">${fmtHMS(u.idleSeconds || 0)}</strong></span>
                 <span>Pauses: <strong>${u.pauses || 0}</strong></span>
+                <span>Role: <strong>${escapeHtml(u.role || 'Specialist')}</strong></span>
               </div>
             </div>
           `;
         }).join('');
       }
 
-      // Update KPI Header Numbers
-      let totalActive = 0, totalIdle = 0, totalScore = 0, onlineCount = 0;
+      // Update KPI counters
+      let totalActive = 0;
+      let totalIdle = 0;
+      let onlineCount = 0;
+      let totalProdSec = 0;
+      let countWithTime = 0;
+
       currentLiveUsers.forEach(u => {
-        totalActive += (u.activeSeconds || 0);
+        const sec = u.activeSeconds || 0;
+        totalActive += sec;
         totalIdle += (u.idleSeconds || 0);
-        totalScore += (typeof u.prodPct === 'number' ? u.prodPct : 0);
+        totalProdSec += (u.productiveSeconds || (sec * 0.9));
+        if (sec > 0) countWithTime++;
+
         const st = (u.effectiveStatus || u.status || '').toLowerCase();
-        if (st === 'active' || st === 'idle') onlineCount++;
+        if (st === 'active' || st === 'idle' || st === 'paused') onlineCount++;
       });
 
-      const avgProd = currentLiveUsers.length > 0 ? Math.round(totalScore / currentLiveUsers.length) : 0;
       document.getElementById('liveTotalActive').innerText = fmtHMS(totalActive);
       document.getElementById('liveTotalIdle').innerText = fmtHMS(totalIdle);
-      document.getElementById('liveProductivity').innerText = `${avgProd}%`;
+      document.getElementById('liveOnlineCount').innerText = `${onlineCount} Online`;
       document.getElementById('liveAvgActive').innerText = `Installed Systems: ${currentLiveUsers.length}`;
-      document.getElementById('liveOnlineCount').innerText = `${onlineCount} / ${currentLiveUsers.length} Online`;
-    }
 
-    // In-browser 1-second live clock incrementer
-    setInterval(() => {
-      if (!autoPolling) return;
-      currentLiveUsers.forEach(u => {
-        const st = (u.effectiveStatus || u.status || '').toLowerCase();
-        if (st === 'active') {
-          u.activeSeconds = (u.activeSeconds || 0) + 1;
-          const el = document.getElementById('timer-' + u.user);
-          if (el) el.innerText = fmtHMS(u.activeSeconds);
-        }
-      });
-    }, 1000);
+      const fleetProd = totalActive > 0 ? Math.round((totalProdSec / totalActive) * 100) : 100;
+      document.getElementById('liveProductivity').innerText = `${fleetProd}%`;
+    }
 
     // --- TAB 2: WEB & APP ANALYTICS ---
     async function fetchAnalytics() {
       try {
-        const res = await fetch('/api/analytics');
+        const res = await apiFetch('/api/analytics');
         if (res.ok) {
-          currentAnalytics = await res.json();
-          renderAnalytics(currentAnalytics);
+          const data = await res.json();
+          currentAnalytics = data || { applications: [], websites: [] };
+          renderAnalyticsDashboard(currentAnalytics);
           return;
         }
       } catch (err) {
         console.error('Failed to fetch analytics:', err);
       }
-      renderAnalytics(currentAnalytics);
     }
 
-    function renderAnalytics(data) {
-      document.getElementById('anTotalAppTime').innerText = fmtHMS(data.totalAppSeconds || 0);
-      document.getElementById('anTotalWebTime').innerText = fmtHMS(data.totalWebsiteSeconds || 0);
-      document.getElementById('anProductiveTime').innerText = fmtHMS(data.productiveSeconds || 0);
-      document.getElementById('anNeutralTime').innerText = fmtHMS(data.neutralSeconds || 0);
+    function renderAnalyticsDashboard(data) {
+      const topApp = (data.applications && data.applications.length > 0) ? data.applications[0] : null;
+      const topWeb = (data.websites && data.websites.length > 0) ? data.websites[0] : null;
 
-      const prodPct = data.totalAppSeconds > 0 ? Math.round((data.productiveSeconds / data.totalAppSeconds) * 100) : 0;
-      document.getElementById('anProdPctSub').innerText = `${prodPct}% of total activity`;
+      document.getElementById('statTopApp').innerText = topApp ? topApp.name : '--';
+      document.getElementById('statTopAppTime').innerText = topApp ? `${topApp.hms} usage` : '0h 0m usage';
+
+      document.getElementById('statTopWeb').innerText = topWeb ? topWeb.domain : '--';
+      document.getElementById('statTopWebTime').innerText = topWeb ? `${topWeb.hms} browsing` : '0h 0m browsing';
+
+      const totalAppSec = data.totalAppSeconds || 0;
+      const prodSec = data.productiveSeconds || 0;
+      const unprodSec = data.unproductiveSeconds || 0;
+
+      const prodRatio = totalAppSec > 0 ? Math.round((prodSec / totalAppSec) * 100) : 100;
+      const unprodRatio = totalAppSec > 0 ? Math.round((unprodSec / totalAppSec) * 100) : 0;
+
+      document.getElementById('statProdRatio').innerText = `${prodRatio}%`;
+      document.getElementById('statUnprodRatio').innerText = `${unprodRatio}%`;
 
       renderAppTable(data.applications || []);
       renderWebTable(data.websites || []);
@@ -827,23 +1157,20 @@
     function renderAppTable(apps) {
       const tbody = document.getElementById('appTableBody');
       if (!apps || apps.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:24px; color:var(--text-muted);">No desktop applications recorded yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:32px; color:var(--text-muted);">No application telemetry collected yet.</td></tr>`;
         return;
       }
-      tbody.innerHTML = apps.map(a => {
-        let tagClass = 'tag-neutral';
-        let barClass = 'neutral';
-        if (a.classification === 'Productive') { tagClass = 'tag-prod'; barClass = 'prod'; }
-        if (a.classification === 'Unproductive') { tagClass = 'tag-unprod'; barClass = 'unprod'; }
+      tbody.innerHTML = apps.map((a, idx) => {
+        const badge = a.classification === 'Productive' ? 'badge-prod' : (a.classification === 'Unproductive' ? 'badge-unprod' : 'badge-neutral');
         return `
           <tr>
-            <td><strong>${escapeHtml(a.name)}</strong></td>
-            <td><span class="tag ${tagClass}">${escapeHtml(a.classification)}</span></td>
-            <td><strong>${a.hms}</strong></td>
-            <td style="min-width:120px;">
-              <span>${a.percentage}%</span>
-              <div class="bar-container">
-                <div class="bar-fill ${barClass}" style="width: ${Math.max(4, a.percentage)}%;"></div>
+            <td><strong>#${idx + 1}</strong> &nbsp; <code>${escapeHtml(a.name)}</code></td>
+            <td><span class="badge-tag ${badge}">${escapeHtml(a.classification || 'Neutral')}</span></td>
+            <td><strong>${escapeHtml(a.hms)}</strong></td>
+            <td>
+              <div class="share-bar-container">
+                <div class="share-bar" style="width:${Math.max(6, a.percentage * 1.5)}px;"></div>
+                <span>${a.percentage}%</span>
               </div>
             </td>
           </tr>
@@ -854,23 +1181,20 @@
     function renderWebTable(webs) {
       const tbody = document.getElementById('webTableBody');
       if (!webs || webs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:24px; color:var(--text-muted);">No browser websites recorded yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:32px; color:var(--text-muted);">No browser URL telemetry collected yet.</td></tr>`;
         return;
       }
-      tbody.innerHTML = webs.map(w => {
-        let tagClass = 'tag-neutral';
-        let barClass = 'neutral';
-        if (w.classification === 'Productive') { tagClass = 'tag-prod'; barClass = 'prod'; }
-        if (w.classification === 'Unproductive') { tagClass = 'tag-unprod'; barClass = 'unprod'; }
+      tbody.innerHTML = webs.map((w, idx) => {
+        const badge = w.classification === 'Productive' ? 'badge-prod' : (w.classification === 'Unproductive' ? 'badge-unprod' : 'badge-neutral');
         return `
           <tr>
-            <td><strong>${escapeHtml(w.domain)}</strong></td>
-            <td><span class="tag ${tagClass}">${escapeHtml(w.classification)}</span></td>
-            <td><strong>${w.hms}</strong></td>
-            <td style="min-width:120px;">
-              <span>${w.percentage}%</span>
-              <div class="bar-container">
-                <div class="bar-fill ${barClass}" style="width: ${Math.max(4, w.percentage)}%;"></div>
+            <td><strong>#${idx + 1}</strong> &nbsp; 🌐 <code>${escapeHtml(w.domain)}</code></td>
+            <td><span class="badge-tag ${badge}">${escapeHtml(w.classification || 'Productive')}</span></td>
+            <td><strong>${escapeHtml(w.hms)}</strong></td>
+            <td>
+              <div class="share-bar-container">
+                <div class="share-bar" style="width:${Math.max(6, w.percentage * 1.5)}px; background:var(--productive);"></div>
+                <span>${w.percentage}%</span>
               </div>
             </td>
           </tr>
@@ -878,22 +1202,127 @@
       }).join('');
     }
 
-    function filterAnalytics() {
+    function filterAnalyticsTables() {
       const appQ = (document.getElementById('appSearch')?.value || '').toLowerCase();
       const webQ = (document.getElementById('webSearch')?.value || '').toLowerCase();
+
       const filteredApps = (currentAnalytics.applications || []).filter(a => a.name.toLowerCase().includes(appQ));
       const filteredWebs = (currentAnalytics.websites || []).filter(w => w.domain.toLowerCase().includes(webQ));
+
       renderAppTable(filteredApps);
       renderWebTable(filteredWebs);
     }
 
-    // --- TAB 3: SHIFT TIMESHEETS ---
-    async function fetchReportRecords() {
+    // --- TAB 3: SCREENSHOTS VIEWER ---
+    async function fetchScreenshots() {
       try {
-        const res = await fetch('/api/reports');
+        const res = await apiFetch('/api/screenshots');
+        if (res.ok) {
+          const list = await res.json();
+          currentScreenshots = Array.isArray(list) ? list : [];
+          renderScreenshotsGrid();
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to fetch screenshots:', err);
+      }
+      renderScreenshotsGrid();
+    }
+
+    function renderScreenshotsGrid() {
+      const grid = document.getElementById('screenshotsGrid');
+      const dateFilter = document.getElementById('ssDateFilter').value;
+      const userFilter = document.getElementById('ssUserFilter').value;
+
+      let filtered = currentScreenshots;
+      if (dateFilter) {
+        filtered = filtered.filter(s => s.date === dateFilter);
+      }
+      if (userFilter && userFilter !== 'all') {
+        filtered = filtered.filter(s => (s.user || '').toLowerCase() === userFilter.toLowerCase());
+      }
+
+      if (!filtered || filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <h3>No screenshots found for selected criteria</h3>
+            <p>Click "Take Instant Screenshot" above to capture current workstation activity or choose another date.</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(s => {
+        const timeStr = s.time || 'Timestamp recorded';
+        const kbSize = s.sizeBytes ? Math.round(s.sizeBytes / 1024) + ' KB' : '';
+        return `
+          <div class="screenshot-card" onclick="openScreenshotLightbox('${escapeHtml(s.url)}', '${escapeHtml(s.filename)}', '${escapeHtml(s.date)} ${escapeHtml(timeStr)}')">
+            <div class="screenshot-thumb-container">
+              <img src="${escapeHtml(s.url)}" alt="${escapeHtml(s.filename)}" class="screenshot-thumb" loading="lazy">
+              <div class="screenshot-overlay">🔍 Click to Expand</div>
+            </div>
+            <div class="screenshot-info">
+              <div class="screenshot-meta-row">
+                <span style="font-weight:700; color:#fff;">📸 ${escapeHtml(timeStr)}</span>
+                <span>${escapeHtml(s.date)}</span>
+              </div>
+              <div class="screenshot-meta-row" style="margin-top:4px;">
+                <span>Workstation Capture</span>
+                <span>${escapeHtml(kbSize)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function triggerScreenshotCapture() {
+      showToast('Capturing on-demand workstation screenshot...');
+      try {
+        const res = await apiFetch('/api/screenshots/capture', { method: 'POST' });
         if (res.ok) {
           const data = await res.json();
-          currentReportRecords = Array.isArray(data) ? data : [];
+          if (data.success) {
+            showToast('Desktop screenshot captured successfully!');
+            fetchScreenshots();
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Screenshot capture failed:', err);
+      }
+      showToast('Screenshot capture trigger failed.');
+    }
+
+    function openScreenshotLightbox(url, title, time) {
+      currentLightboxUrl = url;
+      document.getElementById('lightboxTitle').innerText = title || 'Workstation Screenshot';
+      document.getElementById('lightboxImg').src = url;
+      document.getElementById('lightboxMeta').innerHTML = `Captured: <strong>${escapeHtml(time)}</strong> &nbsp;|&nbsp; Target: <strong>System Workstation</strong>`;
+      document.getElementById('screenshotLightboxModal').style.display = 'flex';
+    }
+
+    function closeLightboxModal() {
+      document.getElementById('screenshotLightboxModal').style.display = 'none';
+      document.getElementById('lightboxImg').src = '';
+    }
+
+    function downloadLightboxImage() {
+      if (currentLightboxUrl) {
+        const a = document.createElement('a');
+        a.href = currentLightboxUrl;
+        a.download = 'screenshot_' + Date.now() + '.jpg';
+        a.click();
+      }
+    }
+
+    // --- TAB 4: SHIFT TIMESHEETS ---
+    async function fetchReportRecords() {
+      try {
+        const res = await apiFetch('/api/reports');
+        if (res.ok) {
+          const records = await res.json();
+          currentReportRecords = Array.isArray(records) ? records : [];
           renderReportTable(currentReportRecords);
           return;
         }
@@ -906,60 +1335,67 @@
     function renderReportTable(records) {
       const tbody = document.getElementById('reportTableBody');
       if (!records || records.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">No historical daily timesheets recorded yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">No verified timesheets found in local system store.</td></tr>`;
         return;
       }
-      tbody.innerHTML = records.map(r => `
-        <tr>
-          <td><strong>${escapeHtml(r.date)}</strong></td>
-          <td>${escapeHtml(r.user)}</td>
-          <td><span style="color:var(--text-dim);">${escapeHtml(r.machine)}</span></td>
-          <td><strong class="text-blue">${r.activeHms || fmtHMS(r.activeSeconds)}</strong></td>
-          <td><span class="text-amber">${r.idleHms || fmtHMS(r.idleSeconds)}</span></td>
-          <td><strong class="text-green">${r.prodPct}%</strong></td>
-          <td><span class="tag tag-neutral">${escapeHtml(r.currentApp || 'Desktop')}</span></td>
-          <td><span class="tag tag-prod">${escapeHtml(r.status || 'Completed')}</span></td>
-        </tr>
-      `).join('');
+
+      tbody.innerHTML = records.map(r => {
+        const prod = r.prodPct !== undefined ? Math.round(r.prodPct) : 100;
+        const color = prod >= 75 ? 'text-green' : (prod >= 50 ? 'text-amber' : 'text-rose');
+        return `
+          <tr>
+            <td><strong>${escapeHtml(r.date)}</strong></td>
+            <td><strong>${escapeHtml(r.user)}</strong></td>
+            <td><code>${escapeHtml(r.machine)}</code></td>
+            <td class="text-blue"><strong>${escapeHtml(r.activeHms)}</strong></td>
+            <td class="text-amber">${escapeHtml(r.idleHms)}</td>
+            <td>${r.pauses || 0}</td>
+            <td class="${color}"><strong>${prod}%</strong></td>
+            <td><span class="badge-tag badge-prod">Verified</span></td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function filterReportTable() {
       const q = (document.getElementById('reportSearch')?.value || '').toLowerCase();
-      const filtered = currentReportRecords.filter(r =>
-        (r.user || '').toLowerCase().includes(q) ||
-        (r.machine || '').toLowerCase().includes(q) ||
-        (r.date || '').toLowerCase().includes(q)
-      );
+      const filtered = currentReportRecords.filter(r => {
+        return (r.user || '').toLowerCase().includes(q) ||
+               (r.date || '').toLowerCase().includes(q) ||
+               (r.machine || '').toLowerCase().includes(q);
+      });
       renderReportTable(filtered);
     }
 
-    function exportCurrentView() {
-      if (currentReportRecords.length === 0) {
+    function exportReportsCSV() {
+      if (!currentReportRecords || currentReportRecords.length === 0) {
         showToast('No timesheet records available to export.');
         return;
       }
-      const header = ["Date", "Employee", "Machine", "Active Time", "Idle Time", "Productivity %", "Status"];
+      const header = ["date", "user", "machine", "active_hms", "idle_hms", "pauses", "productivity_pct", "status"];
       const rows = currentReportRecords.map(r => [
-        `"${r.date}"`, `"${r.user}"`, `"${r.machine}"`, `"${r.activeHms}"`, `"${r.idleHms}"`, `"${r.prodPct}%"`, `"${r.status}"`
-      ]);
-      const csv = [header.join(','), ...rows.map(e => e.join(','))].join('\r\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Vserve_Timesheets_${new Date().toISOString().slice(0,10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('Timesheets exported successfully.');
+        r.date, `"${r.user}"`, `"${r.machine}"`, r.activeHms, r.idleHms, r.pauses, r.prodPct, "Verified"
+      ].join(","));
+
+      const csvContent = "data:text/csv;charset=utf-8," + [header.join(","), ...rows].join("\n");
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csvContent));
+      link.setAttribute("download", `timesheets_export_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Timesheets CSV exported successfully.');
     }
 
-    // --- TAB 4: EMPLOYEE DIRECTORY & USER MANAGEMENT ---
+    // --- TAB 5: EMPLOYEE DIRECTORY & USER MANAGEMENT ---
     async function fetchUsers() {
       try {
-        const res = await fetch('/api/users');
+        const res = await apiFetch('/api/users');
         if (res.ok) {
-          currentUsersList = await res.json();
+          const list = await res.json();
+          currentUsersList = Array.isArray(list) ? list : [];
           renderUserTable(currentUsersList);
+          updateUserFilterDropdown(currentUsersList);
           return;
         }
       } catch (err) {
@@ -968,38 +1404,51 @@
       renderUserTable(currentUsersList);
     }
 
+    function updateUserFilterDropdown(users) {
+      const sel = document.getElementById('ssUserFilter');
+      if (!sel) return;
+      const currentVal = sel.value;
+      sel.innerHTML = '<option value="all">All Employees</option>' + users.map(u => {
+        return `<option value="${escapeHtml(u.username)}">${escapeHtml(u.displayName || u.username)}</option>`;
+      }).join('');
+      sel.value = currentVal;
+    }
+
     function renderUserTable(users) {
       const tbody = document.getElementById('userTableBody');
       if (!users || users.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:var(--text-muted);">No employees registered yet. Click "+ Add New Employee" to create one.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted);">No employee accounts created yet. Click "+ Add New Employee" to register one.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = users.map(u => `
-        <tr>
-          <td><strong style="color:#38bdf8;">${escapeHtml(u.username)}</strong></td>
-          <td><strong>${escapeHtml(u.displayName || u.username)}</strong></td>
-          <td><span class="tag tag-neutral">${escapeHtml(u.department || 'General')}</span></td>
-          <td>${escapeHtml(u.role || 'Employee')}</td>
-          <td><span style="color:var(--text-dim);">${escapeHtml(u.machine || 'Workstation')}</span></td>
-          <td>${u.targetDailyHours || 8} hrs</td>
-          <td>${Math.round((u.idleThresholdSeconds || 600) / 60)} mins</td>
-          <td><span class="tag tag-prod">${escapeHtml(u.status || 'Active')}</span></td>
-          <td>
-            <button onclick="editUser('${escapeHtml(u.username)}')" style="padding:4px 8px; font-size:0.75rem;">Edit</button>
-            <button class="btn-danger" onclick="deleteUser('${escapeHtml(u.username)}')" style="padding:4px 8px; font-size:0.75rem;">Delete</button>
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = users.map(u => {
+        return `
+          <tr>
+            <td><strong><code>${escapeHtml(u.username)}</code></strong></td>
+            <td><strong>${escapeHtml(u.displayName || u.username)}</strong></td>
+            <td>${escapeHtml(u.department || 'Engineering')}</td>
+            <td>${escapeHtml(u.role || 'Specialist')}</td>
+            <td><code>${escapeHtml(u.machine || 'Workstation')}</code></td>
+            <td>${u.targetDailyHours || 8.0}h / day</td>
+            <td>${u.idleThresholdSeconds || 600}s</td>
+            <td><span class="badge-tag badge-prod">Active</span></td>
+            <td>
+              <button onclick="editUser('${escapeHtml(u.username)}')" style="padding:4px 8px; font-size:0.75rem;">Edit</button>
+              <button onclick="deleteUser('${escapeHtml(u.username)}')" style="padding:4px 8px; font-size:0.75rem; color:#f43f5e;">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function openCreateUserModal() {
       document.getElementById('userModalTitle').innerText = 'Register New Employee Account';
       document.getElementById('usrUsername').value = '';
+      document.getElementById('usrUsername').disabled = false;
       document.getElementById('usrDisplayName').value = '';
       document.getElementById('usrPassword').value = '';
       document.getElementById('usrDepartment').value = 'Engineering';
-      document.getElementById('usrRole').value = 'Employee / Specialist';
+      document.getElementById('usrRole').value = 'Specialist / Employee';
       document.getElementById('usrMachine').value = 'Workstation';
       document.getElementById('usrTargetHours').value = '8.0';
       document.getElementById('usrIdleTimeout').value = '600';
@@ -1014,14 +1463,16 @@
     }
 
     function editUser(username) {
-      const u = currentUsersList.find(x => x.username.toLowerCase() === username.toLowerCase());
+      const u = currentUsersList.find(x => x.username === username);
       if (!u) return;
-      document.getElementById('userModalTitle').innerText = 'Edit Employee: ' + u.username;
+
+      document.getElementById('userModalTitle').innerText = `Edit Employee: ${u.username}`;
       document.getElementById('usrUsername').value = u.username;
+      document.getElementById('usrUsername').disabled = true;
       document.getElementById('usrDisplayName').value = u.displayName || u.username;
       document.getElementById('usrPassword').value = u.password || '';
       document.getElementById('usrDepartment').value = u.department || 'Engineering';
-      document.getElementById('usrRole').value = u.role || 'Employee';
+      document.getElementById('usrRole').value = u.role || 'Specialist';
       document.getElementById('usrMachine').value = u.machine || 'Workstation';
       document.getElementById('usrTargetHours').value = u.targetDailyHours || 8.0;
       document.getElementById('usrIdleTimeout').value = u.idleThresholdSeconds || 600;
@@ -1033,28 +1484,27 @@
 
     async function saveUserRecord() {
       const username = document.getElementById('usrUsername').value.trim();
-      const displayName = document.getElementById('usrDisplayName').value.trim();
       if (!username) {
-        alert('Username is required for employee login.');
+        alert('Username is required.');
         return;
       }
 
       const payload = {
         username: username,
-        displayName: displayName || username,
-        password: document.getElementById('usrPassword').value,
+        displayName: document.getElementById('usrDisplayName').value.trim() || username,
+        password: document.getElementById('usrPassword').value.trim(),
         department: document.getElementById('usrDepartment').value.trim() || 'General',
         role: document.getElementById('usrRole').value.trim() || 'Employee',
         machine: document.getElementById('usrMachine').value.trim() || 'Workstation',
-        targetDailyHours: parseFloat(document.getElementById('usrTargetHours').value) || 8.0,
-        idleThresholdSeconds: parseInt(document.getElementById('usrIdleTimeout').value, 10) || 600,
+        targetDailyHours: parseFloat(document.getElementById('usrTargetHours').value || 8.0),
+        idleThresholdSeconds: parseInt(document.getElementById('usrIdleTimeout').value || 600, 10),
         enableAppTracking: document.getElementById('usrEnableAppTracking').checked,
         enableBrowserTracking: document.getElementById('usrEnableBrowserTracking').checked,
         enableScreenshots: document.getElementById('usrEnableScreenshots').checked
       };
 
       try {
-        const res = await fetch('/api/users', {
+        const res = await apiFetch('/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -1066,105 +1516,117 @@
           fetchLiveTelemetry();
         } else {
           const err = await res.json();
-          alert('Error saving user: ' + (err.error || 'Unknown error'));
+          alert('Failed to save user: ' + (err.error || 'Server error'));
         }
-      } catch (err) {
-        alert('Network error saving user: ' + err.message);
+      } catch (e) {
+        alert('Network error saving user: ' + e.message);
       }
     }
 
     async function deleteUser(username) {
-      if (!confirm(`Are you sure you want to remove user "${username}"?`)) return;
+      if (!confirm(`Are you sure you want to delete employee "${username}"?`)) return;
       try {
-        const res = await fetch(`/api/users/${encodeURIComponent(username)}`, { method: 'DELETE' });
+        const res = await apiFetch(`/api/users/${encodeURIComponent(username)}`, { method: 'DELETE' });
         if (res.ok) {
-          showToast(`User "${username}" removed.`);
+          showToast(`Employee "${username}" deleted.`);
           fetchUsers();
           fetchLiveTelemetry();
         }
-      } catch (err) {
-        alert('Failed to delete user: ' + err.message);
+      } catch (e) {
+        alert('Error deleting user: ' + e.message);
       }
     }
 
-    // --- TAB 5: FLEET POLICIES ---
+    // --- TAB 6: FLEET POLICIES ---
     async function loadFleetConfigurations() {
       try {
-        const res = await fetch('/api/config');
+        const res = await apiFetch('/api/config');
         if (res.ok) {
           const cfg = await res.json();
           if (cfg.productivityRules) {
-            if (cfg.productivityRules.productiveApps) {
-              document.getElementById('cfgProductive').value = cfg.productivityRules.productiveApps.join(', ');
-            }
-            if (cfg.productivityRules.productiveUrls) {
-              document.getElementById('cfgProductiveUrls').value = cfg.productivityRules.productiveUrls.join(', ');
-            }
-            if (cfg.productivityRules.unproductiveApps || cfg.productivityRules.unproductiveUrls) {
-              const unprod = [...(cfg.productivityRules.unproductiveApps || []), ...(cfg.productivityRules.unproductiveUrls || [])];
-              document.getElementById('cfgUnproductive').value = unprod.join(', ');
-            }
+            document.getElementById('cfgProductive').value = (cfg.productivityRules.productiveApps || []).join(', ');
+            document.getElementById('cfgProductiveUrls').value = (cfg.productivityRules.productiveUrls || []).join(', ');
+            const unprod = [...(cfg.productivityRules.unproductiveApps || []), ...(cfg.productivityRules.unproductiveUrls || [])];
+            document.getElementById('cfgUnproductive').value = unprod.join(', ');
           }
           if (cfg.agent) {
             document.getElementById('cfgIdleTimeout').value = cfg.agent.idleThresholdSeconds || 600;
             document.getElementById('cfgTickInterval').value = cfg.agent.tickIntervalSeconds || 30;
           }
         }
-      } catch (err) {
-        console.error('Failed to load fleet config:', err);
+      } catch (e) {
+        console.error('Failed to load fleet configuration:', e);
       }
     }
 
     async function saveFleetConfigurations() {
       const prodApps = document.getElementById('cfgProductive').value.split(',').map(s => s.trim()).filter(Boolean);
       const prodUrls = document.getElementById('cfgProductiveUrls').value.split(',').map(s => s.trim()).filter(Boolean);
-      const unprodAll = document.getElementById('cfgUnproductive').value.split(',').map(s => s.trim()).filter(Boolean);
-      const unprodApps = unprodAll.filter(s => s.endsWith('.exe'));
-      const unprodUrls = unprodAll.filter(s => !s.endsWith('.exe'));
-      const idleTimeout = parseInt(document.getElementById('cfgIdleTimeout').value, 10) || 600;
-      const tickInterval = parseInt(document.getElementById('cfgTickInterval').value, 10) || 30;
+      const unprodCombined = document.getElementById('cfgUnproductive').value.split(',').map(s => s.trim()).filter(Boolean);
+
+      const unprodApps = unprodCombined.filter(s => s.endsWith('.exe'));
+      const unprodUrls = unprodCombined.filter(s => !s.endsWith('.exe'));
 
       const payload = {
-        project: 'vserve-timechamp',
         agent: {
-          idleThresholdSeconds: idleTimeout,
-          tickIntervalSeconds: tickInterval,
+          idleThresholdSeconds: parseInt(document.getElementById('cfgIdleTimeout').value || 600, 10),
+          tickIntervalSeconds: parseInt(document.getElementById('cfgTickInterval').value || 30, 10),
           enableAppTracking: true,
           enableBrowserUrlTracking: true,
           enableScreenshots: false
         },
         productivityRules: {
           productiveApps: prodApps,
-          unproductiveApps: unprodApps,
           productiveUrls: prodUrls,
+          unproductiveApps: unprodApps,
           unproductiveUrls: unprodUrls
         }
       };
 
       try {
-        const res = await fetch('/api/config', {
+        const res = await apiFetch('/api/config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         if (res.ok) {
-          showToast('Fleet productivity policies saved and active.');
+          showToast('Fleet policies successfully saved and deployed.');
+        } else {
+          alert('Failed to save fleet configuration.');
         }
-      } catch (err) {
-        alert('Error saving policy: ' + err.message);
+      } catch (e) {
+        alert('Network error saving configuration: ' + e.message);
       }
     }
 
-    // --- REAL-TIME POLLING LOOP ---
-    setInterval(() => {
-      if (!autoPolling) return;
-      if (activeTab === 'live') {
-        fetchLiveTelemetry();
-      }
-    }, 3000);
+    // --- INITIALIZATION & AUTO-POLLING LOOP ---
+    let pollingInterval = null;
+    function initDashboard() {
+      const today = new Date().toISOString().slice(0, 10);
+      const dateInput = document.getElementById('ssDateFilter');
+      if (dateInput) dateInput.value = today;
 
-    // Initial Load
-    fetchLiveTelemetry();
+      fetchLiveTelemetry();
+      fetchUsers();
+
+      if (!pollingInterval) {
+        pollingInterval = setInterval(() => {
+          if (!autoPolling || !getAdminToken()) return;
+          if (activeTab === 'live') {
+            fetchLiveTelemetry();
+          } else if (activeTab === 'analytics') {
+            fetchAnalytics();
+          }
+        }, 3000);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const isAuth = await checkAdminSession();
+      if (isAuth) {
+        initDashboard();
+      }
+    });
   </script>
 </body>
 </html>

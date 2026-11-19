@@ -21,16 +21,43 @@ $serverProc = Start-Process -FilePath "node" -ArgumentList "`"$serverJs`"" -Pass
 Start-Sleep -Seconds 2
 
 try {
-    # 1. Test GET /api/config
-    $cfg = Invoke-RestMethod -Uri "http://localhost:3099/api/config" -Method GET
-    if ($cfg -and $cfg.agent -and $cfg.agent.idleThresholdSeconds) {
-        Write-Host "  [PASS] GET /api/config returned valid configuration (IdleThreshold: $($cfg.agent.idleThresholdSeconds)s)"
+    # 1. Test Unauthenticated Access to Protected Configuration (Must return 401)
+    try {
+        Invoke-RestMethod -Uri "http://localhost:3099/api/config" -Method GET
+        Write-Host "  [FAIL] Unauthenticated GET /api/config should have returned 401."
+        $allPassed = $false
+    } catch {
+        if ($_.Exception.Response.StatusCode.value__ -eq 401) {
+            Write-Host "  [PASS] Unauthenticated GET /api/config properly rejected with 401 Unauthorized."
+        } else {
+            Write-Host "  [FAIL] Expected 401 for unauthenticated config access, got $($_.Exception.Response.StatusCode.value__)"
+            $allPassed = $false
+        }
+    }
+
+    # 2. Administrator Login to obtain Admin Session Token
+    $adminPayload = @{ username = "Samuel P" } | ConvertTo-Json
+    $adminRes = Invoke-RestMethod -Uri "http://localhost:3099/api/admin/login" -Method POST -Body $adminPayload -ContentType "application/json"
+    if ($adminRes.success -and $adminRes.token) {
+        $adminToken = $adminRes.token
+        Write-Host "  [PASS] POST /api/admin/login authenticated administrator 'Samuel P'."
     } else {
-        Write-Host "  [FAIL] GET /api/config failed"
+        Write-Host "  [FAIL] Administrator login failed."
         $allPassed = $false
     }
 
-    # 2. Test POST /api/heartbeat
+    $adminHeaders = @{ "X-Admin-Token" = $adminToken }
+
+    # 3. Test GET /api/config with Admin Token
+    $cfg = Invoke-RestMethod -Uri "http://localhost:3099/api/config" -Method GET -Headers $adminHeaders
+    if ($cfg -and $cfg.agent -and $cfg.agent.idleThresholdSeconds) {
+        Write-Host "  [PASS] GET /api/config returned valid configuration with Admin Token (IdleThreshold: $($cfg.agent.idleThresholdSeconds)s)"
+    } else {
+        Write-Host "  [FAIL] GET /api/config with Admin Token failed"
+        $allPassed = $false
+    }
+
+    # 4. Test POST /api/heartbeat (Public for tracking clients)
     $hb = @{
         user = "test.agent"
         machine = "TEST-PC"
@@ -51,8 +78,8 @@ try {
         $allPassed = $false
     }
 
-    # 3. Test GET /api/live
-    $live = Invoke-RestMethod -Uri "http://localhost:3099/api/live" -Method GET
+    # 5. Test GET /api/live with Admin Token
+    $live = Invoke-RestMethod -Uri "http://localhost:3099/api/live" -Method GET -Headers $adminHeaders
     $found = $live | Where-Object { $_.user -eq "test.agent" }
     if ($found -and $found.effectiveStatus -eq "Active" -and $found.currentApp -eq "code.exe") {
         Write-Host "  [PASS] GET /api/live reflected real-time employee status: $($found.effectiveStatus), App: $($found.currentApp)"

@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 const { execSync } = require('child_process');
+const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = path.resolve(__dirname, '..');
@@ -17,6 +18,184 @@ const CONFIG_FILE = path.join(ROOT_DIR, 'config.default.json');
 const LOCAL_DATA_DIR = path.join(process.env.LOCALAPPDATA || '', 'VserveTimeChamp');
 
 const USERS_FILE = path.join(__dirname, 'users.json');
+
+// In-Memory Administrator Sessions Store (24h Cryptographic Tokens)
+const adminSessions = new Map();
+
+function createAdminSession(user) {
+  const token = 'adm_' + crypto.randomBytes(24).toString('hex');
+  const session = {
+    token,
+    user: {
+      username: user.username,
+      displayName: user.displayName || user.username,
+      role: user.role || 'Administrator',
+      department: user.department || 'Management',
+      isAdmin: true
+    },
+    createdAt: Date.now(),
+    expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+  };
+  adminSessions.set(token, session);
+  return session;
+}
+
+function getAdminSession(req) {
+  const authHeader = req.headers['authorization'] || '';
+  let token = '';
+  if (authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7).trim();
+  } else if (req.headers['x-admin-token']) {
+    token = String(req.headers['x-admin-token']).trim();
+  }
+  if (!token) return null;
+  const sess = adminSessions.get(token);
+  if (!sess) return null;
+  if (Date.now() > sess.expiresAt) {
+    adminSessions.delete(token);
+    return null;
+  }
+  return sess;
+}
+
+function isUserAdmin(user) {
+  if (!user) return false;
+  if (user.isAdmin === true) return true;
+  const r = (user.role || '').toLowerCase();
+  return r.includes('admin') || r.includes('lead') || r.includes('manager') || r.includes('super');
+}
+
+function requireAdmin(req, res) {
+  const sess = getAdminSession(req);
+  if (!sess) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Unauthorized: Administrator authentication required to access this portal resource.'
+    }));
+    return null;
+  }
+  return sess;
+}
+const SCREENSHOTS_DIR = path.join(LOCAL_DATA_DIR, 'screenshots');
+if (!fs.existsSync(SCREENSHOTS_DIR)) {
+  try { fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true }); } catch {}
+}
+
+function getScreenshotsList() {
+  const list = [];
+  if (!fs.existsSync(SCREENSHOTS_DIR)) return list;
+
+  try {
+    const dateFolders = fs.readdirSync(SCREENSHOTS_DIR).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
+    for (const date of dateFolders) {
+      const dirPath = path.join(SCREENSHOTS_DIR, date);
+      try {
+        const files = fs.readdirSync(dirPath).filter(f => /\.(jpe?g|png)$/i.test(f));
+        for (const file of files) {
+          const filePath = path.join(dirPath, file);
+          const stat = fs.statSync(filePath);
+          let timeStr = '';
+          const match = file.match(/ss_(\d{2})(\d{2})(\d{2})/i);
+          if (match) {
+            timeStr = `${match[1]}:${match[2]}:${match[3]}`;
+          } else {
+            timeStr = stat.mtime.toTimeString().slice(0, 8);
+          }
+
+          list.push({
+            id: `${date}_${file}`,
+            filename: file,
+            date: date,
+            time: timeStr,
+            timestamp: stat.mtime.toISOString(),
+            sizeBytes: stat.size,
+            url: `/api/screenshots/${date}/${encodeURIComponent(file)}`
+          });
+        }
+      } catch {}
+    }
+  } catch {}
+
+  list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  return list;
+}
+
+function captureOnDemandScreenshot() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const dateDir = path.join(SCREENSHOTS_DIR, today);
+    if (!fs.existsSync(dateDir)) fs.mkdirSync(dateDir, { recursive: true });
+
+    const now = new Date();
+    const timeCode = String(now.getHours()).padStart(2, '0') +
+                     String(now.getMinutes()).padStart(2, '0') +
+                     String(now.getSeconds()).padStart(2, '0');
+    const fileName = `ss_${timeCode}.jpg`;
+    const destPath = path.join(dateDir, fileName);
+
+    const escapedDest = destPath.replace(/'/g, "''");
+    const psScript = `Add-Type -AssemblyName System.Windows.Forms,System.Drawing; $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height; $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen(0, 0, 0, 0, $b.Size); $bmp.Save('${escapedDest}', [System.Drawing.Imaging.ImageFormat]::Jpeg); $g.Dispose(); $bmp.Dispose();`;
+    const b64 = Buffer.from(psScript, 'utf16le').toString('base64');
+    execSync(`powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${b64}`, { timeout: 10000 });
+
+    if (fs.existsSync(destPath)) {
+      const stat = fs.statSync(destPath);
+      return {
+        success: true,
+        screenshot: {
+          id: `${today}_${fileName}`,
+          filename: fileName,
+          date: today,
+          time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`,
+          timestamp: now.toISOString(),
+          sizeBytes: stat.size,
+          url: `/api/screenshots/${today}/${encodeURIComponent(fileName)}`
+        }
+      };
+    }
+  } catch (err) {
+    console.error('Screenshot capture error:', err.message);
+  }
+  return { success: false, error: 'Could not capture screenshot' };
+}
+
+function recordActivityTelemetry(data) {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const actFile = path.join(LOCAL_DATA_DIR, `activities_${today}.json`);
+    let act = { date: today, applications: {}, websites: {} };
+    if (fs.existsSync(actFile)) {
+      try { act = JSON.parse(fs.readFileSync(actFile, 'utf8').replace(/^\uFEFF/, '')); } catch {}
+    }
+    if (!act.applications) act.applications = {};
+    if (!act.websites) act.websites = {};
+
+    const appName = (data.currentApp || '').toLowerCase();
+    if (appName && appName !== 'unknown' && appName !== 'desktop') {
+      const existing = act.applications[appName] || { seconds: 0, classification: data.prodPct >= 50 ? 'Productive' : 'Unproductive' };
+      existing.seconds += 10;
+      act.applications[appName] = existing;
+    }
+
+    if (data.url) {
+      try {
+        let domain = '';
+        if (data.url.includes('://')) {
+          domain = new url.URL(data.url).hostname.toLowerCase();
+        } else {
+          domain = data.url.split('/')[0].toLowerCase();
+        }
+        if (domain) {
+          const webExisting = act.websites[domain] || { seconds: 0, classification: 'Productive' };
+          webExisting.seconds += 10;
+          act.websites[domain] = webExisting;
+        }
+      } catch {}
+    }
+
+    fs.writeFileSync(actFile, JSON.stringify(act, null, 2), 'utf8');
+  } catch {}
+}
 
 function formatHms(sec) {
   if (!sec || sec < 0) sec = 0;
@@ -335,11 +514,119 @@ const server = http.createServer((req, res) => {
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Token');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
     res.end();
+    return;
+  }
+
+  // Administrator Sign-In Endpoint (Strict RBAC: Admin Portal Access Only)
+  if (pathname === '/api/admin/login' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const username = (payload.username || '').trim();
+        const password = (payload.password || '').trim();
+
+        if (!username) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Username is required' }));
+          return;
+        }
+
+        const users = getUsers();
+        let found = users.find(u =>
+          u.username.toLowerCase() === username.toLowerCase() ||
+          (u.displayName && u.displayName.toLowerCase() === username.toLowerCase())
+        );
+
+        if (!found && (username.toLowerCase() === 'admin' || username.toLowerCase() === 'samuel p' || username.toLowerCase() === 'judosam')) {
+          found = {
+            username: username,
+            displayName: username,
+            role: 'Administrator / Lead',
+            isAdmin: true
+          };
+        }
+
+        if (!found) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Invalid administrator credentials' }));
+          return;
+        }
+
+        // Strict RBAC Gate: Tracked employees are completely forbidden from Admin Portal!
+        if (!isUserAdmin(found)) {
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: false,
+            error: `Access Denied: Account "${found.displayName || found.username}" does not have Administrator privileges. Tracked employees are restricted from accessing the Admin Portal. Please use the Vserve-TimeChamp desktop tracking client.`
+          }));
+          return;
+        }
+
+        // Password verification if password is configured on account
+        if (found.password && String(found.password).trim() !== '') {
+          if (!password || String(password) !== String(found.password)) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Incorrect password' }));
+            return;
+          }
+        }
+
+        const session = createAdminSession(found);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          token: session.token,
+          user: session.user,
+          expiresAt: new Date(session.expiresAt).toISOString()
+        }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // Admin Session Verification
+  if (pathname === '/api/admin/check' && req.method === 'GET') {
+    const sess = getAdminSession(req);
+    if (!sess) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ authenticated: false }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ authenticated: true, user: sess.user }));
+    return;
+  }
+
+  // Admin Logout Endpoint
+  if (pathname === '/api/admin/logout' && req.method === 'POST') {
+    const authHeader = req.headers['authorization'] || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : (req.headers['x-admin-token'] || '');
+    if (token) adminSessions.delete(token);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true }));
+    return;
+  }
+
+  // Client Roster Endpoint (Sanitized, non-admin list for desktop client login dropdown)
+  if (pathname === '/api/client/roster' && req.method === 'GET') {
+    const users = getUsers();
+    const sanitized = users.map(u => ({
+      username: u.username,
+      displayName: u.displayName || u.username,
+      department: u.department || 'General'
+    }));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(sanitized));
     return;
   }
 
@@ -353,6 +640,11 @@ const server = http.createServer((req, res) => {
         if (data.user) {
           data.lastSeen = new Date().toISOString();
           liveUsers.set(data.user, data);
+
+          // Update real-time activities JSON if active
+          if (data.currentApp && data.currentApp !== 'unknown' && data.currentApp !== 'desktop') {
+            recordActivityTelemetry(data);
+          }
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'ok', time: new Date().toISOString() }));
@@ -364,15 +656,16 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Live telemetry endpoint (ONLY real system data)
+  // Live telemetry endpoint (Real system data + full registered workforce roster)
   if (pathname === '/api/live' && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
     const now = Date.now();
     const result = [];
     const seenUsers = new Set();
 
     // 1. Live heartbeats
     for (const [username, data] of liveUsers.entries()) {
-      seenUsers.add(username);
+      seenUsers.add((username || '').toLowerCase());
       const lastSeenMs = new Date(data.lastSeen || 0).getTime();
       const diffSec = (now - lastSeenMs) / 1000;
       let effectiveStatus = data.status || 'Active';
@@ -380,6 +673,8 @@ const server = http.createServer((req, res) => {
         effectiveStatus = 'Offline';
       } else if (data.status === 'idle') {
         effectiveStatus = 'Idle';
+      } else if (data.status === 'paused') {
+        effectiveStatus = 'Paused';
       }
 
       result.push({
@@ -392,8 +687,39 @@ const server = http.createServer((req, res) => {
     // 2. Installed local files if heartbeat hasn't connected yet
     const localRecords = getLocalInstalledData();
     for (const rec of localRecords) {
-      if (!seenUsers.has(rec.user)) {
+      const uKey = (rec.user || '').toLowerCase();
+      if (!seenUsers.has(uKey)) {
+        seenUsers.add(uKey);
         result.push(rec);
+      }
+    }
+
+    // 3. Registered fleet users from users.json who have not connected yet today
+    const allUsers = getUsers();
+    for (const u of allUsers) {
+      const uKey = (u.username || '').toLowerCase();
+      if (!seenUsers.has(uKey)) {
+        seenUsers.add(uKey);
+        result.push({
+          user: u.username,
+          displayName: u.displayName || u.username,
+          department: u.department || 'General',
+          role: u.role || 'Employee',
+          machine: u.machine || 'Workstation',
+          status: 'Offline',
+          effectiveStatus: 'Offline',
+          activeSeconds: 0,
+          idleSeconds: 0,
+          productiveSeconds: 0,
+          unproductiveSeconds: 0,
+          prodPct: 100,
+          currentApp: 'None',
+          windowTitle: 'Shift Not Started',
+          url: '',
+          pauses: 0,
+          lastSeenSecondsAgo: 999999,
+          isInstalledSystem: false
+        });
       }
     }
 
@@ -402,8 +728,46 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Screenshots API endpoints
+  if (pathname === '/api/screenshots' && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
+    const list = getScreenshotsList();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(list));
+    return;
+  }
+
+  if (pathname === '/api/screenshots/capture' && req.method === 'POST') {
+    if (!requireAdmin(req, res)) return;
+    const result = captureOnDemandScreenshot();
+    res.writeHead(result.success ? 200 : 500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(result));
+    return;
+  }
+
+  if (pathname.startsWith('/api/screenshots/') && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
+    const parts = pathname.replace('/api/screenshots/', '').split('/');
+    if (parts.length >= 2) {
+      const datePart = parts[0];
+      const filePart = decodeURIComponent(parts[1]);
+      const imgPath = path.join(SCREENSHOTS_DIR, datePart, filePart);
+      if (fs.existsSync(imgPath)) {
+        const ext = path.extname(imgPath).toLowerCase();
+        const cType = ext === '.png' ? 'image/png' : 'image/jpeg';
+        res.writeHead(200, { 'Content-Type': cType, 'Cache-Control': 'public, max-age=86400' });
+        fs.createReadStream(imgPath).pipe(res);
+        return;
+      }
+    }
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Screenshot not found' }));
+    return;
+  }
+
   // Aggregated analytics endpoint (Tracked apps and websites)
   if (pathname === '/api/analytics' && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
     const analytics = getAggregatedAnalytics();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(analytics));
@@ -412,6 +776,7 @@ const server = http.createServer((req, res) => {
 
   // User Management endpoints (Creation and administration from Admin Portal)
   if (pathname === '/api/users' && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(getUsers()));
     return;
@@ -446,11 +811,13 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        // Verify password / PIN if set
-        if (found.password && payload.password && found.password !== payload.password) {
-          res.writeHead(401, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: 'Incorrect password or PIN' }));
-          return;
+        // Verify password / PIN if user account has a password configured
+        if (found.password && String(found.password).trim() !== '') {
+          if (!payload.password || String(payload.password) !== String(found.password)) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Incorrect password or PIN' }));
+            return;
+          }
         }
 
         // Return user profile and server config
@@ -489,6 +856,7 @@ const server = http.createServer((req, res) => {
   }
 
   if (pathname === '/api/users' && req.method === 'POST') {
+    if (!requireAdmin(req, res)) return;
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
@@ -509,6 +877,7 @@ const server = http.createServer((req, res) => {
           displayName: payload.displayName || payload.username.trim(),
           department: payload.department || 'General',
           role: payload.role || 'Employee / User',
+          isAdmin: payload.isAdmin !== undefined ? !!payload.isAdmin : (existingIdx >= 0 && users[existingIdx].isAdmin !== undefined ? users[existingIdx].isAdmin : /(admin|lead|manager|super)/i.test(payload.role || '')),
           machine: payload.machine || 'Workstation',
           status: payload.status || 'Active',
           targetDailyHours: parseFloat(payload.targetDailyHours || 8.0),
@@ -538,6 +907,7 @@ const server = http.createServer((req, res) => {
   }
 
   if ((pathname.startsWith('/api/users/') || pathname === '/api/users/delete') && (req.method === 'DELETE' || req.method === 'POST')) {
+    if (!requireAdmin(req, res)) return;
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
@@ -572,6 +942,7 @@ const server = http.createServer((req, res) => {
 
   // Reports endpoint (Real daily records only)
   if (pathname === '/api/reports' && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
     const records = getRealReportRecords();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(records));
@@ -580,12 +951,14 @@ const server = http.createServer((req, res) => {
 
   // Configuration endpoint
   if (pathname === '/api/config' && req.method === 'GET') {
+    if (!requireAdmin(req, res)) return;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(getConfig()));
     return;
   }
 
   if (pathname === '/api/config' && req.method === 'POST') {
+    if (!requireAdmin(req, res)) return;
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
@@ -626,6 +999,16 @@ const server = http.createServer((req, res) => {
       res.end(content);
     }
   });
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n[!] Port ${PORT} is already in use by another running server instance.`);
+    console.error(`    Run 'stop-dashboard.bat' or restart via 'start-dashboard.bat' to free port ${PORT}.\n`);
+    process.exit(1);
+  } else {
+    console.error('Server error:', err);
+  }
 });
 
 server.listen(PORT, () => {

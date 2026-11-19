@@ -183,16 +183,26 @@ if (-not [string]::IsNullOrEmpty($CentralPath)) {
 }
 if ($VerboseLog) { $config.agent.logLevel = "DEBUG" }
 
-# Resolve User and Machine
-$user = if (-not [string]::IsNullOrWhiteSpace($config.agent.user)) { $config.agent.user } else { [System.Environment]::UserName }
-$machine = if (-not [string]::IsNullOrWhiteSpace($config.agent.machine)) { $config.agent.machine } else { [System.Environment]::MachineName }
-
 # Resolve local data directory
 $rawLocalPath = if (-not [string]::IsNullOrWhiteSpace($config.agent.localDataPath)) { $config.agent.localDataPath } else { "%LOCALAPPDATA%\VserveTimeChamp" }
 $resolvedLocalPath = [System.Environment]::ExpandEnvironmentVariables($rawLocalPath)
 if (-not (Test-Path $resolvedLocalPath)) {
     New-Item -ItemType Directory -Path $resolvedLocalPath -Force | Out-Null
 }
+
+# Resolve User and Machine (Check session.json first for client popup logged in employee)
+$sessionFile = Join-Path $resolvedLocalPath "session.json"
+$sessionUser = ""
+if (Test-Path $sessionFile) {
+    try {
+        $sessRaw = Get-Content -Path $sessionFile -Raw -ErrorAction Stop
+        $sessObj = $sessRaw | ConvertFrom-Json
+        if ($sessObj.username) { $sessionUser = $sessObj.username }
+    } catch {}
+}
+
+$user = if (-not [string]::IsNullOrWhiteSpace($sessionUser)) { $sessionUser } elseif (-not [string]::IsNullOrWhiteSpace($config.agent.user)) { $config.agent.user } else { [System.Environment]::UserName }
+$machine = if (-not [string]::IsNullOrWhiteSpace($config.agent.machine)) { $config.agent.machine } else { [System.Environment]::MachineName }
 
 $logFilePath = Join-Path $resolvedLocalPath "agent.log"
 

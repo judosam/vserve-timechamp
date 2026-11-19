@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
+using System.Windows.Automation;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -64,18 +65,22 @@ namespace VserveTimeChamp {
         }
 
         private static void DeploySelfAndPayloads(string targetDir) {
+            // Remove any leftover stop request file from previous uninstallation/tests
+            try {
+                string stopFile = Path.Combine(targetDir, ".stop_requested");
+                if (File.Exists(stopFile)) File.Delete(stopFile);
+            } catch {}
+
             // Payload extraction
             Dictionary<string, string> payloads = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 /*__PAYLOADS_INSERTION_POINT__*/
 
             foreach (KeyValuePair<string, string> kv in payloads) {
                 string destPath = Path.Combine(targetDir, kv.Key);
-                if (!File.Exists(destPath)) {
-                    try {
-                        byte[] raw = Convert.FromBase64String(kv.Value);
-                        File.WriteAllBytes(destPath, raw);
-                    } catch {}
-                }
+                try {
+                    byte[] raw = Convert.FromBase64String(kv.Value);
+                    File.WriteAllBytes(destPath, raw);
+                } catch {}
             }
 
             string currentExe = "";
@@ -97,7 +102,6 @@ namespace VserveTimeChamp {
 
             // Register HKCU Run key for logon auto-start
             try {
-                string agentLauncher = Path.Combine(targetDir, "launcher.vbs");
                 string watchdogLauncher = Path.Combine(targetDir, "launcher-watchdog.vbs");
                 string systemDir = Environment.GetFolderPath(Environment.SpecialFolder.System);
                 string wscriptExe = Path.Combine(systemDir, "wscript.exe");
@@ -106,9 +110,10 @@ namespace VserveTimeChamp {
                     if (runKey != null) {
                         string exeToRun = File.Exists(destExe) ? destExe : currentExe;
                         runKey.SetValue("VserveTimeChamp", "\"" + exeToRun + "\" --autostart");
-                        if (File.Exists(agentLauncher)) runKey.SetValue("VserveTimeChampAgent", "\"" + wscriptExe + "\" \"" + agentLauncher + "\"");
                         if (File.Exists(watchdogLauncher)) runKey.SetValue("VserveTimeChampWatchdog", "\"" + wscriptExe + "\" \"" + watchdogLauncher + "\"");
-                        if (File.Exists(agentLauncher)) runKey.SetValue("WorkTimerAgent", "\"" + wscriptExe + "\" \"" + agentLauncher + "\"");
+                        // Clean legacy duplicates
+                        try { runKey.DeleteValue("VserveTimeChampAgent", false); } catch {}
+                        try { runKey.DeleteValue("WorkTimerAgent", false); } catch {}
                     }
                 }
 
@@ -127,7 +132,7 @@ namespace VserveTimeChamp {
         }
     }
 
-    // Win32 Helper for idle detection, window inspection and borderless form dragging
+    // Win32 Helper for idle detection, window inspection and browser UI automation
     internal static class Win32 {
         [StructLayout(LayoutKind.Sequential)]
         public struct LASTINPUTINFO {
@@ -176,11 +181,14 @@ namespace VserveTimeChamp {
             return unchecked(currentTick - lii.dwTime) / 1000;
         }
 
-        public static void GetActiveWindowInfo(out string processName, out string windowTitle) {
+        public static void GetActiveWindowInfo(out string processName, out string windowTitle, out IntPtr hwndOut) {
             processName = "unknown";
             windowTitle = "";
+            hwndOut = IntPtr.Zero;
+
             IntPtr hwnd = GetForegroundWindow();
             if (hwnd == IntPtr.Zero) return;
+            hwndOut = hwnd;
 
             StringBuilder sbTitle = new StringBuilder(512);
             if (GetWindowText(hwnd, sbTitle, 512) > 0) {
@@ -209,6 +217,57 @@ namespace VserveTimeChamp {
                 }
             }
         }
+
+        public static string GetActiveBrowserUrl(IntPtr hwnd, string processName) {
+            string p = (processName ?? "").ToLower();
+            if (!p.Contains("chrome") && !p.Contains("msedge") && !p.Contains("brave") && !p.Contains("opera")) {
+                return "";
+            }
+            if (hwnd == IntPtr.Zero) return "";
+            try {
+                AutomationElement root = AutomationElement.FromHandle(hwnd);
+                if (root == null) return "";
+
+                PropertyCondition cond = new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit);
+                AutomationElementCollection edits = root.FindAll(TreeScope.Descendants, cond);
+                foreach (AutomationElement edit in edits) {
+                    try {
+                        string name = edit.Current.Name ?? "";
+                        if (name.IndexOf("address", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                            name.IndexOf("search", StringComparison.OrdinalIgnoreCase) >= 0) {
+                            object pattern;
+                            if (edit.TryGetCurrentPattern(ValuePattern.Pattern, out pattern)) {
+                                string val = ((ValuePattern)pattern).Current.Value;
+                                if (!string.IsNullOrEmpty(val)) {
+                                    val = val.Trim();
+                                    if (!val.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                                        !val.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) {
+                                        val = "https://" + val;
+                                    }
+                                    return val;
+                                }
+                            }
+                        }
+                    } catch {}
+                }
+            } catch {}
+            return "";
+        }
+
+        public static string ExtractDomain(string url) {
+            if (string.IsNullOrEmpty(url)) return "";
+            try {
+                string u = url.Trim();
+                if (!u.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                    !u.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) {
+                    u = "https://" + u;
+                }
+                Uri uri = new Uri(u);
+                return uri.Host.ToLower();
+            } catch {
+                return "";
+            }
+        }
     }
 
     // Main Floating Tracking & Login Window
@@ -234,6 +293,8 @@ namespace VserveTimeChamp {
         private int idleThresholdSeconds = 600;
         private string currentApp = "desktop";
         private string currentTitle = "System Active";
+        private string currentUrl = "";
+        private string currentDomain = "";
         private string currentClassification = "Productive";
         private DateTime shiftStartTime = DateTime.UtcNow;
         private int pauseCount = 0;
@@ -290,7 +351,7 @@ namespace VserveTimeChamp {
         private void InitializeForm() {
             this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.Size = new Size(410, 530);
+            this.Size = new Size(410, 540);
             this.BackColor = Color.FromArgb(11, 15, 25); // Deep Dark Slate
             this.ForeColor = Color.FromArgb(248, 250, 252);
             this.DoubleBuffered = true;
@@ -323,7 +384,7 @@ namespace VserveTimeChamp {
 
             // Minimize Button (_)
             Button btnMin = new Button();
-            btnMin.Text = "—";
+            btnMin.Text = "\u2014"; // Unicode em-dash
             btnMin.Font = new Font("Segoe UI", 9f, FontStyle.Bold);
             btnMin.Size = new Size(32, 28);
             btnMin.Location = new Point(334, 10);
@@ -340,7 +401,7 @@ namespace VserveTimeChamp {
 
             // Close Button (✕)
             Button btnClose = new Button();
-            btnClose.Text = "✕";
+            btnClose.Text = "\u2715"; // Unicode multiplication X
             btnClose.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
             btnClose.Size = new Size(32, 28);
             btnClose.Location = new Point(368, 10);
@@ -405,7 +466,7 @@ namespace VserveTimeChamp {
 
             // Server URL Label & Box
             Label lblSrv = new Label();
-            lblSrv.Text = "ADMIN PORTAL SERVER URL";
+            lblSrv.Text = "TRACKING SERVER URL";
             lblSrv.Font = new Font("Segoe UI", 7.5f, FontStyle.Bold);
             lblSrv.ForeColor = Color.FromArgb(100, 116, 139);
             lblSrv.Location = new Point(25, 90);
@@ -456,7 +517,7 @@ namespace VserveTimeChamp {
             lblPass.AutoSize = true;
 
             txtPassword = new TextBox();
-            txtPassword.PasswordChar = '●';
+            txtPassword.PasswordChar = '\u25CF'; // Standard bullet
             txtPassword.Location = new Point(25, 228);
             txtPassword.Size = new Size(353, 26);
             txtPassword.BackColor = Color.FromArgb(30, 41, 59);
@@ -496,7 +557,7 @@ namespace VserveTimeChamp {
 
             // Info note
             Label lblNote = new Label();
-            lblNote.Text = "Accounts are configured in the Admin Portal (http://localhost:3000).\nOnce created by admin, login here to track your daily active time.";
+            lblNote.Text = "Employee Workforce Client \u2014 Restricted to registered team members.\nAdmin portal is restricted to authorized administrators only.";
             lblNote.Font = new Font("Segoe UI", 7.5f);
             lblNote.ForeColor = Color.FromArgb(100, 116, 139);
             lblNote.Location = new Point(25, 405);
@@ -552,14 +613,14 @@ namespace VserveTimeChamp {
             lblUserName.AutoSize = true;
 
             lblUserMeta = new Label();
-            lblUserMeta.Text = "Engineering • Workstation";
+            lblUserMeta.Text = "Engineering \u2022 Workstation";
             lblUserMeta.Font = new Font("Segoe UI", 8f);
             lblUserMeta.ForeColor = Color.FromArgb(148, 163, 184);
             lblUserMeta.Location = new Point(61, 35);
             lblUserMeta.AutoSize = true;
 
             lblStatusBadge = new Label();
-            lblStatusBadge.Text = "● ACTIVE";
+            lblStatusBadge.Text = "\u25CF ACTIVE";
             lblStatusBadge.Font = new Font("Segoe UI", 8f, FontStyle.Bold);
             lblStatusBadge.ForeColor = Color.FromArgb(16, 185, 129);
             lblStatusBadge.BackColor = Color.FromArgb(20, 16, 185, 129);
@@ -616,8 +677,8 @@ namespace VserveTimeChamp {
             lblClassificationTag.Text = "Productive";
             lblClassificationTag.Font = new Font("Segoe UI", 7.5f, FontStyle.Bold);
             lblClassificationTag.ForeColor = Color.FromArgb(16, 185, 129);
-            lblClassificationTag.Location = new Point(280, 8);
-            lblClassificationTag.Size = new Size(80, 20);
+            lblClassificationTag.Location = new Point(270, 8);
+            lblClassificationTag.Size = new Size(90, 20);
             lblClassificationTag.TextAlign = ContentAlignment.MiddleRight;
 
             lblActivityApp = new Label();
@@ -675,9 +736,9 @@ namespace VserveTimeChamp {
 
             // Action Buttons
             btnTogglePause = new Button();
-            btnTogglePause.Text = "⏸️ PAUSE TRACKING";
+            btnTogglePause.Text = "\u23F8 PAUSE TRACKING";
             btnTogglePause.Location = new Point(20, 338);
-            btnTogglePause.Size = new Size(180, 40);
+            btnTogglePause.Size = new Size(180, 42);
             btnTogglePause.FlatStyle = FlatStyle.Flat;
             btnTogglePause.BackColor = Color.FromArgb(245, 158, 11);
             btnTogglePause.FlatAppearance.BorderSize = 0;
@@ -686,24 +747,10 @@ namespace VserveTimeChamp {
             btnTogglePause.Cursor = Cursors.Hand;
             btnTogglePause.Click += (s, e) => TogglePauseTracking();
 
-            Button btnOpenPortal = new Button();
-            btnOpenPortal.Text = "🌐 OPEN PORTAL";
-            btnOpenPortal.Location = new Point(210, 338);
-            btnOpenPortal.Size = new Size(180, 40);
-            btnOpenPortal.FlatStyle = FlatStyle.Flat;
-            btnOpenPortal.BackColor = Color.FromArgb(37, 99, 235);
-            btnOpenPortal.FlatAppearance.BorderSize = 0;
-            btnOpenPortal.ForeColor = Color.White;
-            btnOpenPortal.Font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
-            btnOpenPortal.Cursor = Cursors.Hand;
-            btnOpenPortal.Click += (s, e) => {
-                try { Process.Start(serverUrl); } catch {}
-            };
-
             Button btnHideToTray = new Button();
-            btnHideToTray.Text = "🔻 MINIMIZE TO SYSTEM TRAY";
-            btnHideToTray.Location = new Point(20, 386);
-            btnHideToTray.Size = new Size(370, 36);
+            btnHideToTray.Text = "\u25BC  MINIMIZE TO TRAY";
+            btnHideToTray.Location = new Point(210, 338);
+            btnHideToTray.Size = new Size(180, 42);
             btnHideToTray.FlatStyle = FlatStyle.Flat;
             btnHideToTray.BackColor = Color.FromArgb(30, 41, 59);
             btnHideToTray.FlatAppearance.BorderSize = 0;
@@ -718,8 +765,8 @@ namespace VserveTimeChamp {
 
             Button btnSignOut = new Button();
             btnSignOut.Text = "Switch User / Sign Out";
-            btnSignOut.Location = new Point(120, 432);
-            btnSignOut.Size = new Size(170, 26);
+            btnSignOut.Location = new Point(110, 396);
+            btnSignOut.Size = new Size(190, 26);
             btnSignOut.FlatStyle = FlatStyle.Flat;
             btnSignOut.FlatAppearance.BorderSize = 0;
             btnSignOut.BackColor = Color.Transparent;
@@ -729,7 +776,6 @@ namespace VserveTimeChamp {
             btnSignOut.Click += (s, e) => SignOut();
 
             trackingPanel.Controls.Add(btnTogglePause);
-            trackingPanel.Controls.Add(btnOpenPortal);
             trackingPanel.Controls.Add(btnHideToTray);
             trackingPanel.Controls.Add(btnSignOut);
 
@@ -742,7 +788,7 @@ namespace VserveTimeChamp {
         // =====================================================================
         private void InitializeTray() {
             trayMenu = new ContextMenuStrip();
-            ToolStripMenuItem itemHeader = new ToolStripMenuItem("👤 Vserve TimeChamp");
+            ToolStripMenuItem itemHeader = new ToolStripMenuItem("Vserve TimeChamp");
             itemHeader.Enabled = false;
 
             ToolStripMenuItem itemShow = new ToolStripMenuItem("Show Tracker Window");
@@ -751,11 +797,6 @@ namespace VserveTimeChamp {
 
             ToolStripMenuItem itemPause = new ToolStripMenuItem("Pause / Resume Tracking");
             itemPause.Click += (s, e) => TogglePauseTracking();
-
-            ToolStripMenuItem itemPortal = new ToolStripMenuItem("Open Web Portal");
-            itemPortal.Click += (s, e) => {
-                try { Process.Start(serverUrl); } catch {}
-            };
 
             ToolStripMenuItem itemLogout = new ToolStripMenuItem("Sign Out");
             itemLogout.Click += (s, e) => SignOut();
@@ -772,7 +813,6 @@ namespace VserveTimeChamp {
             trayMenu.Items.Add(new ToolStripSeparator());
             trayMenu.Items.Add(itemShow);
             trayMenu.Items.Add(itemPause);
-            trayMenu.Items.Add(itemPortal);
             trayMenu.Items.Add(itemLogout);
             trayMenu.Items.Add(new ToolStripSeparator());
             trayMenu.Items.Add(itemExit);
@@ -849,10 +889,27 @@ namespace VserveTimeChamp {
             heartbeatTicks++;
             if (heartbeatTicks % 3 == 0) {
                 string pName, wTitle;
-                Win32.GetActiveWindowInfo(out pName, out wTitle);
+                IntPtr hwnd;
+                Win32.GetActiveWindowInfo(out pName, out wTitle, out hwnd);
                 if (!string.IsNullOrEmpty(pName) && pName != "unknown") currentApp = pName;
                 if (!string.IsNullOrEmpty(wTitle)) currentTitle = wTitle;
-                currentClassification = ClassifyActivity(currentApp);
+
+                // Inspect browser URL if browser window
+                string bUrl = Win32.GetActiveBrowserUrl(hwnd, currentApp);
+                if (!string.IsNullOrEmpty(bUrl)) {
+                    currentUrl = bUrl;
+                    currentDomain = Win32.ExtractDomain(bUrl);
+                } else if (!currentApp.Contains("chrome") && !currentApp.Contains("msedge") && !currentApp.Contains("brave")) {
+                    currentUrl = "";
+                    currentDomain = "";
+                }
+
+                currentClassification = ClassifyActivity(currentApp, currentUrl);
+            }
+
+            // Periodic screenshot capture every 300 ticks (5 minutes) while active
+            if (heartbeatTicks % 300 == 0 && isTracking && !isIdle) {
+                ThreadPool.QueueUserWorkItem(s => CaptureScreenshot());
             }
 
             // 4. Update UI labels
@@ -862,7 +919,7 @@ namespace VserveTimeChamp {
             long prodScore = activeSeconds > 0 ? (productiveSeconds * 100 / activeSeconds) : 100;
             lblSummaryProd.Text = "Prod: " + prodScore + "%";
 
-            lblActivityApp.Text = currentApp;
+            lblActivityApp.Text = currentApp + (!string.IsNullOrEmpty(currentDomain) ? (" (" + currentDomain + ")") : "");
             lblActivityTitle.Text = currentTitle;
             lblClassificationTag.Text = currentClassification;
             if (currentClassification == "Productive") lblClassificationTag.ForeColor = Color.FromArgb(16, 185, 129);
@@ -870,13 +927,13 @@ namespace VserveTimeChamp {
             else lblClassificationTag.ForeColor = Color.FromArgb(56, 189, 248);
 
             if (!isTracking) {
-                lblStatusBadge.Text = "⏸️ PAUSED";
+                lblStatusBadge.Text = "\u23F8 PAUSED";
                 lblStatusBadge.ForeColor = Color.FromArgb(245, 158, 11);
             } else if (isIdle) {
-                lblStatusBadge.Text = "💤 IDLE";
+                lblStatusBadge.Text = "[IDLE] IDLE";
                 lblStatusBadge.ForeColor = Color.FromArgb(249, 115, 22);
             } else {
-                lblStatusBadge.Text = "● ACTIVE";
+                lblStatusBadge.Text = "\u25CF ACTIVE";
                 lblStatusBadge.ForeColor = Color.FromArgb(16, 185, 129);
             }
 
@@ -892,25 +949,58 @@ namespace VserveTimeChamp {
             }
         }
 
-        private string ClassifyActivity(string app) {
+        private string ClassifyActivity(string app, string url) {
             string a = (app ?? "").ToLower();
-            if (a.Contains("code") || a.Contains("devenv") || a.Contains("idea") || a.Contains("excel") || a.Contains("word") || a.Contains("teams") || a.Contains("outlook") || a.Contains("antigravity")) {
-                return "Productive";
-            }
-            if (a.Contains("spotify") || a.Contains("steam") || a.Contains("discord") || a.Contains("game")) {
+            string u = (url ?? "").ToLower();
+
+            // Unproductive sites/apps
+            if (u.Contains("facebook.com") || u.Contains("instagram.com") || u.Contains("twitter.com") ||
+                u.Contains("x.com") || u.Contains("tiktok.com") || u.Contains("netflix.com") ||
+                u.Contains("reddit.com") || a.Contains("spotify") || a.Contains("steam") ||
+                a.Contains("discord") || a.Contains("game")) {
                 return "Unproductive";
             }
+
+            // Productive sites/apps
+            if (u.Contains("github.com") || u.Contains("gitlab.com") || u.Contains("bitbucket.org") ||
+                u.Contains("stackoverflow.com") || u.Contains("vservesolution.com") || u.Contains("jira") ||
+                u.Contains("confluence") || u.Contains("docs.google.com") ||
+                a.Contains("code") || a.Contains("devenv") || a.Contains("idea") || a.Contains("excel") ||
+                a.Contains("word") || a.Contains("powerpnt") || a.Contains("teams") ||
+                a.Contains("slack") || a.Contains("outlook") || a.Contains("antigravity")) {
+                return "Productive";
+            }
+
             return "Productive";
+        }
+
+        private void CaptureScreenshot() {
+            try {
+                string today = DateTime.UtcNow.ToString("yyyy-MM-dd");
+                string ssDir = Path.Combine(targetDir, "screenshots", today);
+                if (!Directory.Exists(ssDir)) Directory.CreateDirectory(ssDir);
+
+                string timeCode = DateTime.UtcNow.ToString("HHmmss");
+                string ssPath = Path.Combine(ssDir, "ss_" + timeCode + ".jpg");
+
+                Rectangle bounds = Screen.PrimaryScreen.Bounds;
+                using (Bitmap bmp = new Bitmap(bounds.Width, bounds.Height)) {
+                    using (Graphics g = Graphics.FromImage(bmp)) {
+                        g.CopyFromScreen(0, 0, 0, 0, bounds.Size);
+                    }
+                    bmp.Save(ssPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                }
+            } catch {}
         }
 
         private void TogglePauseTracking() {
             isTracking = !isTracking;
             if (!isTracking) {
-                btnTogglePause.Text = "▶️ RESUME TRACKING";
+                btnTogglePause.Text = "\u25B6 RESUME TRACKING";
                 btnTogglePause.BackColor = Color.FromArgb(16, 185, 129);
                 btnTogglePause.ForeColor = Color.White;
             } else {
-                btnTogglePause.Text = "⏸️ PAUSE TRACKING";
+                btnTogglePause.Text = "\u23F8 PAUSE TRACKING";
                 btnTogglePause.BackColor = Color.FromArgb(245, 158, 11);
                 btnTogglePause.ForeColor = Color.Black;
             }
@@ -978,7 +1068,7 @@ namespace VserveTimeChamp {
                 try {
                     using (WebClient wc = new WebClient()) {
                         wc.Encoding = Encoding.UTF8;
-                        string json = wc.DownloadString(serverUrl + "/api/users");
+                        string json = wc.DownloadString(serverUrl + "/api/client/roster");
                         object[] userList = serializer.Deserialize<object[]>(json);
 
                         this.Invoke(new Action(() => {
@@ -991,17 +1081,17 @@ namespace VserveTimeChamp {
                                     }
                                 }
                                 if (cbUsers.Items.Count > 0) cbUsers.SelectedIndex = 0;
-                                lblLoginStatus.Text = "🟢 Connected: " + cbUsers.Items.Count + " user account(s) available.";
+                                lblLoginStatus.Text = "[OK] Connected: " + cbUsers.Items.Count + " user account(s) available.";
                                 lblLoginStatus.ForeColor = Color.FromArgb(16, 185, 129);
                             } else {
-                                lblLoginStatus.Text = "Connected, but no users created yet in Admin Portal.";
+                                lblLoginStatus.Text = "Connected, but no employee accounts found.";
                                 lblLoginStatus.ForeColor = Color.FromArgb(245, 158, 11);
                             }
                         }));
                     }
                 } catch (Exception ex) {
                     this.Invoke(new Action(() => {
-                        lblLoginStatus.Text = "⚠️ Unable to connect to server: " + ex.Message;
+                        lblLoginStatus.Text = "[!] Unable to connect to server: " + ex.Message;
                         lblLoginStatus.ForeColor = Color.FromArgb(239, 68, 68);
                     }));
                 }
@@ -1051,7 +1141,7 @@ namespace VserveTimeChamp {
                         } else {
                             string err = res != null && res.ContainsKey("error") ? res["error"].ToString() : "Authentication failed.";
                             this.Invoke(new Action(() => {
-                                lblLoginStatus.Text = "❌ " + err;
+                                lblLoginStatus.Text = "[X] " + err;
                                 lblLoginStatus.ForeColor = Color.FromArgb(239, 68, 68);
                                 btnSignIn.Enabled = true;
                             }));
@@ -1059,7 +1149,7 @@ namespace VserveTimeChamp {
                     }
                 } catch (Exception ex) {
                     this.Invoke(new Action(() => {
-                        lblLoginStatus.Text = "❌ Login Error: " + ex.Message;
+                        lblLoginStatus.Text = "[X] Login Error: " + ex.Message;
                         lblLoginStatus.ForeColor = Color.FromArgb(239, 68, 68);
                         btnSignIn.Enabled = true;
                     }));
@@ -1078,6 +1168,20 @@ namespace VserveTimeChamp {
 
                 string raw = serializer.Serialize(sess);
                 File.WriteAllText(Path.Combine(targetDir, "session.json"), raw, Encoding.UTF8);
+
+                // Also sync config.json for background agent
+                string cfgPath = Path.Combine(targetDir, "config.json");
+                if (File.Exists(cfgPath)) {
+                    string cfgRaw = File.ReadAllText(cfgPath, Encoding.UTF8);
+                    Dictionary<string, object> cfg = serializer.Deserialize<Dictionary<string, object>>(cfgRaw);
+                    if (cfg != null && cfg.ContainsKey("agent")) {
+                        Dictionary<string, object> agentCfg = cfg["agent"] as Dictionary<string, object>;
+                        if (agentCfg != null) {
+                            agentCfg["user"] = username;
+                            File.WriteAllText(cfgPath, serializer.Serialize(cfg), Encoding.UTF8);
+                        }
+                    }
+                }
             } catch {}
         }
 
@@ -1103,7 +1207,7 @@ namespace VserveTimeChamp {
             trackingPanel.Visible = true;
 
             lblUserName.Text = currentDisplayName;
-            lblUserMeta.Text = currentDepartment + " • " + Environment.MachineName;
+            lblUserMeta.Text = currentDepartment + " \u2022 " + Environment.MachineName;
 
             string initials = "SP";
             string[] parts = currentDisplayName.Split(' ');
@@ -1136,7 +1240,7 @@ namespace VserveTimeChamp {
                     hb["prodPct"] = score;
                     hb["currentApp"] = currentApp;
                     hb["windowTitle"] = currentTitle;
-                    hb["url"] = "";
+                    hb["url"] = currentUrl;
                     hb["pauses"] = pauseCount;
                     hb["timestamp"] = DateTime.UtcNow.ToString("o");
 
