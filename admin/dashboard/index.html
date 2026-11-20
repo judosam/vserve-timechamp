@@ -154,24 +154,21 @@
     .share-bar-container { display: flex; align-items: center; gap: 8px; }
     .share-bar { height: 6px; border-radius: 3px; background: var(--accent); }
 
-    /* Screenshots Gallery Tab */
-    .screenshots-controls { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
-    .screenshots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; margin-bottom: 24px; }
-    .screenshot-card {
-      background: #0d1527; border: 1px solid var(--card-border); border-radius: var(--radius);
-      overflow: hidden; transition: transform 0.2s, border-color 0.2s; cursor: pointer;
+    /* Device Telemetry Spec Chip (TimeChamp Asset Audit) */
+    .device-spec-chip {
+      margin-top: 10px; padding: 8px 12px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 6px; cursor: pointer; transition: all 0.2s;
     }
-    .screenshot-card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-    .screenshot-thumb-container { position: relative; width: 100%; height: 170px; background: #050811; overflow: hidden; }
-    .screenshot-thumb { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
-    .screenshot-card:hover .screenshot-thumb { transform: scale(1.04); }
-    .screenshot-overlay {
-      position: absolute; inset: 0; background: rgba(0,0,0,0.45); opacity: 0; transition: opacity 0.2s;
-      display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; color: #fff;
+    .device-spec-chip:hover {
+      background: rgba(15, 23, 42, 0.95);
+      border-color: var(--accent);
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.2);
     }
-    .screenshot-card:hover .screenshot-overlay { opacity: 1; }
-    .screenshot-info { padding: 12px 14px; }
-    .screenshot-meta-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; color: var(--text-muted); }
+    .spec-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; color: #fff; }
+    .spec-link { color: var(--accent); font-weight: 600; font-size: 0.72rem; }
+    .spec-details-mini { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
 
     /* Modal Lightbox */
     .modal-backdrop {
@@ -273,7 +270,7 @@
       <div class="logo-badge">TC</div>
       <div class="title-text">
         <h1>VSERVE TIMECHAMP <span class="org-pill">Enterprise Workforce Hub</span></h1>
-        <p>Real-Time Workforce Activity, Idle Detection, Browser Inspection & Screenshot Auditing</p>
+        <p>Real-Time Workforce Activity, Idle Detection, Application Tracking & Hardware Asset Intelligence</p>
       </div>
     </div>
 
@@ -309,8 +306,8 @@
     <button class="tab-btn" onclick="switchTab('analytics')">
       <span>📊</span> Web & App Analytics
     </button>
-    <button class="tab-btn" onclick="switchTab('screenshots')">
-      <span>📸</span> Screenshots Viewer
+    <button class="tab-btn" onclick="switchTab('devices')">
+      <span>🖥️</span> Device & Hardware Inventory
     </button>
     <button class="tab-btn" onclick="switchTab('reports')">
       <span>⏱️</span> Shift Timesheets
@@ -354,21 +351,21 @@
     <!-- Filter & Search Controls -->
     <div class="filter-bar">
       <div class="filter-pills">
-        <span class="filter-pill active" onclick="setLiveStatusFilter('all', this)">All Workstations</span>
+        <span class="filter-pill active" onclick="setLiveStatusFilter('all', this)">All Teams</span>
         <span class="filter-pill" onclick="setLiveStatusFilter('active', this)">🟢 Active Only</span>
         <span class="filter-pill" onclick="setLiveStatusFilter('idle', this)">⏸ Idle / Away</span>
         <span class="filter-pill" onclick="setLiveStatusFilter('offline', this)">⚪ Offline</span>
       </div>
       <div class="search-box">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="liveSearchInput" placeholder="Filter employee, app or workstation..." oninput="applyLiveFilters()">
+        <input type="text" id="liveSearchInput" placeholder="Filter employee, team, app or device..." oninput="applyLiveFilters()">
       </div>
     </div>
 
     <!-- Live Employee Cards Grid -->
     <div class="live-grid" id="liveGrid">
       <div class="empty-state" style="grid-column: 1 / -1;">
-        <h3>Listening for live workstation heartbeats...</h3>
+        <h3>Listening for live team heartbeats...</h3>
         <p>When employees start <code>vserve-timechamp-setup.exe</code> and sign in, their live cards appear here instantly.</p>
       </div>
     </div>
@@ -447,33 +444,70 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- TAB 3: SCREENSHOTS VIEWER                                             -->
+  <!-- TAB 3: DEVICE & HARDWARE INVENTORY (TimeChamp Asset Audit)             -->
   <!-- ===================================================================== -->
-  <div id="tab-screenshots" style="display:none;">
+  <div id="tab-devices" style="display:none;">
+    <!-- Hardware KPI Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Fleet Hardware Devices</div>
+        <div class="stat-value text-blue" id="devTotalCount">0</div>
+        <div class="stat-sub text-green" id="devOnlineCount">Online: 0 Systems</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Machines</div>
+        <div class="stat-value text-green" id="devActiveCount">0</div>
+        <div class="stat-sub text-muted">Reporting Live Telemetry</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Average Fleet RAM Load</div>
+        <div class="stat-value text-amber" id="devAvgRam">--%</div>
+        <div class="stat-sub text-muted">Memory Capacity Monitored</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Average Disk Utilization</div>
+        <div class="stat-value text-purple" id="devAvgDisk">--%</div>
+        <div class="stat-sub text-muted">Primary Storage Health</div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title">
         <div>
-          <span>Workstation Desktop Screenshots</span>
+          <span>Device Hardware &amp; Network Inventory</span>
           <div style="font-size:0.8rem; color:var(--text-muted); font-weight:normal; margin-top:3px;">
-            Periodic and on-demand desktop captures with employee attribution and timestamp evidence.
+            Real-time tracking of Machine Names, Motherboard/BIOS Serial Numbers, Processor Cores, RAM, Disk Capacities, and Working IPs.
           </div>
         </div>
 
-        <div class="screenshots-controls">
-          <input type="date" id="ssDateFilter" onchange="fetchScreenshots()">
-          <select id="ssUserFilter" onchange="fetchScreenshots()">
-            <option value="all">All Employees</option>
-          </select>
-          <button class="btn-primary" onclick="triggerScreenshotCapture()">📸 Take Instant Screenshot</button>
-          <button onclick="fetchScreenshots()">Refresh</button>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="text" id="devSearchInput" placeholder="Filter machine, serial, user, team, or IP..." oninput="applyDeviceFilters()" style="min-width:280px;">
+          <button class="btn-primary" onclick="fetchDevicesList()">Refresh Inventory</button>
         </div>
       </div>
 
-      <!-- Screenshots Thumbnail Grid -->
-      <div class="screenshots-grid" id="screenshotsGrid">
-        <div class="empty-state" style="grid-column: 1 / -1;">
-          <h3>Loading captured screenshots...</h3>
-        </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Device &amp; Serial Number</th>
+              <th>Assigned User &amp; Team</th>
+              <th>Processor (CPU)</th>
+              <th>RAM Memory</th>
+              <th>Primary Storage</th>
+              <th>Working &amp; Local IP</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="devicesTableBody">
+            <tr>
+              <td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">
+                Loading device hardware inventory...
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -495,7 +529,7 @@
           <tr>
             <th>Date</th>
             <th>Employee</th>
-            <th>Workstation</th>
+            <th>Team Name</th>
             <th>Active Duration</th>
             <th>Idle Duration</th>
             <th>Pauses</th>
@@ -532,7 +566,7 @@
             <th>Display Name</th>
             <th>Department</th>
             <th>Role</th>
-            <th>Machine</th>
+            <th>Team Name</th>
             <th>Target Shift</th>
             <th>Idle Timeout</th>
             <th>Status</th>
@@ -601,23 +635,22 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- MODAL: SCREENSHOT FULL LIGHTBOX                                       -->
+  <!-- MODAL: WORKSTATION HARDWARE & NETWORK SPECS AUDIT                     -->
   <!-- ===================================================================== -->
-  <div id="screenshotLightboxModal" class="modal-backdrop">
-    <div class="modal-box modal-box-lg">
+  <div id="hardwareSpecsModal" class="modal-backdrop">
+    <div class="modal-box modal-box-lg" style="max-width: 680px;">
       <div class="modal-header">
-        <h3 id="lightboxTitle">Screenshot Preview</h3>
-        <button onclick="closeLightboxModal()" style="padding:4px 8px; font-size:0.8rem; background:transparent; border:none; color:var(--text-muted);">✕</button>
-      </div>
-      <div class="modal-body" style="text-align:center; padding:14px; background:#050811;">
-        <img id="lightboxImg" src="" alt="Screenshot" style="max-width:100%; max-height:68vh; border-radius:6px; object-fit:contain; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
-      </div>
-      <div class="modal-footer" style="justify-content:space-between;">
-        <div id="lightboxMeta" style="font-size:0.8rem; color:var(--text-muted); text-align:left;"></div>
         <div>
-          <button onclick="downloadLightboxImage()">Download JPEG</button>
-          <button class="btn-primary" onclick="closeLightboxModal()">Close</button>
+          <h3 id="hwModalTitle">🖥️ Device Hardware &amp; Network Specs</h3>
+          <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;" id="hwModalSub">Live hardware audit telemetry</div>
         </div>
+        <button onclick="closeHardwareSpecsModal()" style="padding:4px 8px; font-size:0.8rem; background:transparent; border:none; color:var(--text-muted); cursor:pointer;">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;" id="hwModalBody">
+        <!-- Injected via JavaScript -->
+      </div>
+      <div class="modal-footer" style="justify-content: flex-end;">
+        <button class="btn-primary" onclick="closeHardwareSpecsModal()">Close Audit</button>
       </div>
     </div>
   </div>
@@ -645,8 +678,8 @@
 
         <div class="form-grid">
           <div class="form-group">
-            <label>Access Password / PIN (Optional)</label>
-            <input type="password" id="usrPassword" placeholder="Default: none">
+            <label>Account Password / PIN * (Required)</label>
+            <input type="password" id="usrPassword" placeholder="Enter secure password" required>
           </div>
           <div class="form-group">
             <label>Department</label>
@@ -660,8 +693,8 @@
             <input type="text" id="usrRole" placeholder="e.g. Data Scraping Lead" value="Employee / Specialist">
           </div>
           <div class="form-group">
-            <label>Assigned Workstation Name</label>
-            <input type="text" id="usrMachine" placeholder="e.g. SAM-HP or PC-042" value="Workstation">
+            <label>Team Name *</label>
+            <input type="text" id="usrTeam" placeholder="e.g. Core Engineering or Scraping Team" value="Engineering Team" required>
           </div>
         </div>
 
@@ -684,14 +717,10 @@
           <input type="checkbox" id="usrEnableBrowserTracking" checked>
           <label for="usrEnableBrowserTracking">Enable Browser URL Tracking (Chrome, Edge, Brave)</label>
         </div>
-        <div class="checkbox-group">
-          <input type="checkbox" id="usrEnableScreenshots">
-          <label for="usrEnableScreenshots">Enable Periodic Desktop Screenshots (Optional)</label>
-        </div>
       </div>
       <div class="modal-footer">
         <button onclick="closeUserModal()">Cancel</button>
-        <button class="btn-success" onclick="saveUserRecord()">Save & Activate Account</button>
+        <button class="btn-success" onclick="saveUserRecord()">Save &amp; Activate Account</button>
       </div>
     </div>
   </div>
@@ -721,8 +750,8 @@
         </div>
 
         <div class="form-group" style="margin-bottom: 16px;">
-          <label style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Password / Key (Optional if blank)</label>
-          <input type="password" id="adminPassword" placeholder="Enter password if configured" autocomplete="current-password" style="width:100%; margin-top:5px; padding:10px 14px; font-size:0.95rem;">
+          <label style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Administrator Password * (Required)</label>
+          <input type="password" id="adminPassword" placeholder="Enter password (e.g. Samuel@2026)" required autocomplete="current-password" style="width:100%; margin-top:5px; padding:10px 14px; font-size:0.95rem;">
         </div>
 
         <div class="admin-quick-select" style="margin-bottom: 18px; font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center;">
@@ -750,7 +779,6 @@
     let currentReportRecords = [];
     let currentAnalytics = { applications: [], websites: [] };
     let currentUsersList = [];
-    let currentScreenshots = [];
     let liveFilterStatus = 'all';
     let autoPolling = true;
     let currentLightboxUrl = '';
@@ -937,7 +965,7 @@
     function triggerRefresh() {
       if (activeTab === 'live') fetchLiveTelemetry();
       else if (activeTab === 'analytics') fetchAnalytics();
-      else if (activeTab === 'screenshots') fetchScreenshots();
+      else if (activeTab === 'devices') fetchDevicesList();
       else if (activeTab === 'reports') fetchReportRecords();
       else if (activeTab === 'users') fetchUsers();
       showToast('Telemetry refreshed.');
@@ -946,9 +974,9 @@
     function switchTab(tabId) {
       activeTab = tabId;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('#tab-live, #tab-analytics, #tab-screenshots, #tab-reports, #tab-users, #tab-policies').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('#tab-live, #tab-analytics, #tab-devices, #tab-reports, #tab-users, #tab-policies').forEach(el => el.style.display = 'none');
 
-      const tabs = ['live', 'analytics', 'screenshots', 'reports', 'users', 'policies'];
+      const tabs = ['live', 'analytics', 'devices', 'reports', 'users', 'policies'];
       const idx = tabs.indexOf(tabId);
       if (idx >= 0) {
         document.querySelectorAll('.tab-btn')[idx].classList.add('active');
@@ -957,7 +985,7 @@
 
       if (tabId === 'live') fetchLiveTelemetry();
       else if (tabId === 'analytics') fetchAnalytics();
-      else if (tabId === 'screenshots') fetchScreenshots();
+      else if (tabId === 'devices') fetchDevicesList();
       else if (tabId === 'reports') fetchReportRecords();
       else if (tabId === 'users') fetchUsers();
       else if (tabId === 'policies') loadFleetConfigurations();
@@ -1025,7 +1053,7 @@
       if (!filtered || filtered.length === 0) {
         grid.innerHTML = `
           <div class="empty-state" style="grid-column: 1 / -1;">
-            <h3>No workstations match current filter</h3>
+            <h3>No team members match current filter</h3>
             <p>Try switching status filters or clearing the search query.</p>
           </div>
         `;
@@ -1054,7 +1082,7 @@
                   <div class="user-avatar">${escapeHtml(initials)}</div>
                   <div>
                     <div class="user-name">${escapeHtml(name)}</div>
-                    <div class="user-dept">${escapeHtml(u.department || 'Engineering')} • ${escapeHtml(u.machine || 'Workstation')}</div>
+                    <div class="user-dept">🏢 ${escapeHtml(u.team || u.department || 'Engineering')} • 🖥️ ${escapeHtml(u.systemSpecs?.machineName || u.machine || 'Workstation')}</div>
                   </div>
                 </div>
                 <div class="status-badge ${badgeClass}">${badgeIcon}</div>
@@ -1082,6 +1110,18 @@
                 <span>Away / Idle: <strong class="text-amber">${fmtHMS(u.idleSeconds || 0)}</strong></span>
                 <span>Pauses: <strong>${u.pauses || 0}</strong></span>
                 <span>Role: <strong>${escapeHtml(u.role || 'Specialist')}</strong></span>
+              </div>
+
+              <div class="device-spec-chip" onclick="openHardwareSpecsModal('${escapeHtml(u.user)}')">
+                <div class="spec-row">
+                  <span>🖥️ <strong>${escapeHtml(u.systemSpecs?.machineName || u.machine || 'Workstation')}</strong> (SN: ${escapeHtml(u.systemSpecs?.serialNumber || 'N/A')})</span>
+                  <span class="spec-link">Inspect Hardware ↗</span>
+                </div>
+                <div class="spec-details-mini">
+                  <span>⚙️ ${escapeHtml(u.systemSpecs?.cpu || 'Processor Active')}</span>
+                  <span>💾 RAM: ${u.systemSpecs?.ramUsedGb || '0'}/${u.systemSpecs?.ramTotalGb || '16'} GB (${u.systemSpecs?.ramUsagePct || 0}%)</span>
+                  <span>🌐 IP: ${escapeHtml(u.workingIp || u.systemSpecs?.workingIp || 'Active')}</span>
+                </div>
               </div>
             </div>
           `;
@@ -1213,107 +1253,249 @@
       renderWebTable(filteredWebs);
     }
 
-    // --- TAB 3: SCREENSHOTS VIEWER ---
-    async function fetchScreenshots() {
+    // --- TAB 3: DEVICE & HARDWARE INVENTORY (TimeChamp Asset Audit) ---
+    let currentDevices = [];
+
+    async function fetchDevicesList() {
       try {
-        const res = await apiFetch('/api/screenshots');
+        const res = await apiFetch('/api/devices');
         if (res.ok) {
           const list = await res.json();
-          currentScreenshots = Array.isArray(list) ? list : [];
-          renderScreenshotsGrid();
+          currentDevices = Array.isArray(list) ? list : [];
+          renderDevicesTable();
+          updateDeviceKpis();
           return;
         }
       } catch (err) {
-        console.error('Failed to fetch screenshots:', err);
+        console.error('Failed to fetch devices list:', err);
       }
-      renderScreenshotsGrid();
+      renderDevicesTable();
     }
 
-    function renderScreenshotsGrid() {
-      const grid = document.getElementById('screenshotsGrid');
-      const dateFilter = document.getElementById('ssDateFilter').value;
-      const userFilter = document.getElementById('ssUserFilter').value;
+    function updateDeviceKpis() {
+      const devTotal = document.getElementById('devTotalCount');
+      if (devTotal) devTotal.innerText = currentDevices.length;
+      const online = currentDevices.filter(d => (d.status || '').toLowerCase() === 'active' || (d.status || '').toLowerCase() === 'idle').length;
+      const devOnline = document.getElementById('devOnlineCount');
+      if (devOnline) devOnline.innerText = `Online: ${online} Systems`;
+      const devActive = document.getElementById('devActiveCount');
+      if (devActive) devActive.innerText = online;
 
-      let filtered = currentScreenshots;
-      if (dateFilter) {
-        filtered = filtered.filter(s => s.date === dateFilter);
+      if (currentDevices.length > 0) {
+        const validRams = currentDevices.filter(d => d.ramUsagePct !== undefined && d.ramUsagePct > 0);
+        const avgRam = validRams.length > 0 ? Math.round(validRams.reduce((acc, d) => acc + d.ramUsagePct, 0) / validRams.length) : 52;
+        const devRam = document.getElementById('devAvgRam');
+        if (devRam) devRam.innerText = `${avgRam}%`;
+
+        let diskPctSum = 0, diskCount = 0;
+        currentDevices.forEach(d => {
+          if (Array.isArray(d.storage) && d.storage.length > 0) {
+            d.storage.forEach(s => { diskPctSum += (s.usedPct || 0); diskCount++; });
+          }
+        });
+        const avgDisk = diskCount > 0 ? Math.round(diskPctSum / diskCount) : 48;
+        const devDisk = document.getElementById('devAvgDisk');
+        if (devDisk) devDisk.innerText = `${avgDisk}%`;
       }
-      if (userFilter && userFilter !== 'all') {
-        filtered = filtered.filter(s => (s.user || '').toLowerCase() === userFilter.toLowerCase());
-      }
+    }
+
+    function applyDeviceFilters() {
+      renderDevicesTable();
+    }
+
+    function renderDevicesTable() {
+      const tbody = document.getElementById('devicesTableBody');
+      if (!tbody) return;
+      const q = (document.getElementById('devSearchInput')?.value || '').toLowerCase();
+
+      let filtered = currentDevices.filter(d => {
+        if (!q) return true;
+        const matchDev = (d.machineName || '').toLowerCase().includes(q);
+        const matchSn = (d.serialNumber || '').toLowerCase().includes(q);
+        const matchUser = (d.assignedUser || d.displayName || '').toLowerCase().includes(q);
+        const matchTeam = (d.team || '').toLowerCase().includes(q);
+        const matchIp = (d.workingIp || '').toLowerCase().includes(q) || (d.localIp || '').toLowerCase().includes(q);
+        return matchDev || matchSn || matchUser || matchTeam || matchIp;
+      });
 
       if (!filtered || filtered.length === 0) {
-        grid.innerHTML = `
-          <div class="empty-state" style="grid-column: 1 / -1;">
-            <h3>No screenshots found for selected criteria</h3>
-            <p>Click "Take Instant Screenshot" above to capture current workstation activity or choose another date.</p>
-          </div>
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" style="text-align:center; padding:36px; color:var(--text-muted);">
+              No hardware devices match current search filter.
+            </td>
+          </tr>
         `;
         return;
       }
 
-      grid.innerHTML = filtered.map(s => {
-        const timeStr = s.time || 'Timestamp recorded';
-        const kbSize = s.sizeBytes ? Math.round(s.sizeBytes / 1024) + ' KB' : '';
+      tbody.innerHTML = filtered.map(d => {
+        const isOnline = (d.status || '').toLowerCase() === 'active' || (d.status || '').toLowerCase() === 'idle';
+        const stBadge = isOnline ? `<span class="badge-tag badge-prod">● ${(d.status || 'Active').toUpperCase()}</span>` : `<span class="badge-tag badge-unprod">⚪ OFFLINE</span>`;
+        const ramPct = d.ramUsagePct || 0;
+        const ramColor = ramPct > 85 ? '#f43f5e' : (ramPct > 70 ? '#f59e0b' : '#10b981');
+        
+        let diskStr = 'Primary Drive';
+        let diskPct = 50;
+        if (Array.isArray(d.storage) && d.storage.length > 0) {
+          const pri = d.storage[0];
+          diskStr = `${pri.drive || 'C:'} (${pri.freeGb} GB Free / ${pri.totalGb} GB)`;
+          diskPct = pri.usedPct || 50;
+        }
+
         return `
-          <div class="screenshot-card" onclick="openScreenshotLightbox('${escapeHtml(s.url)}', '${escapeHtml(s.filename)}', '${escapeHtml(s.date)} ${escapeHtml(timeStr)}')">
-            <div class="screenshot-thumb-container">
-              <img src="${escapeHtml(s.url)}" alt="${escapeHtml(s.filename)}" class="screenshot-thumb" loading="lazy">
-              <div class="screenshot-overlay">🔍 Click to Expand</div>
-            </div>
-            <div class="screenshot-info">
-              <div class="screenshot-meta-row">
-                <span style="font-weight:700; color:#fff;">📸 ${escapeHtml(timeStr)}</span>
-                <span>${escapeHtml(s.date)}</span>
+          <tr>
+            <td>
+              <div style="font-weight:700; color:#fff; display:flex; align-items:center; gap:6px;">
+                <span>🖥️ ${escapeHtml(d.machineName)}</span>
               </div>
-              <div class="screenshot-meta-row" style="margin-top:4px;">
-                <span>Workstation Capture</span>
-                <span>${escapeHtml(kbSize)}</span>
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px; display:flex; align-items:center; gap:6px;">
+                <span>SN: <code>${escapeHtml(d.serialNumber || 'N/A')}</code></span>
+                <span style="cursor:pointer; color:var(--accent);" onclick="copyTextToClipboard('${escapeHtml(d.serialNumber)}')" title="Copy Serial Number">📋</span>
               </div>
-            </div>
-          </div>
+            </td>
+            <td>
+              <div style="font-weight:600; color:#fff;">👤 ${escapeHtml(d.displayName || d.assignedUser)}</div>
+              <div style="font-size:0.75rem; color:#38bdf8; margin-top:2px;">🏢 ${escapeHtml(d.team || 'General Team')}</div>
+            </td>
+            <td>
+              <div style="font-size:0.8rem; color:#fff;">⚙️ ${escapeHtml(d.cpu || 'Multi-Core Processor')}</div>
+              <div style="font-size:0.72rem; color:var(--text-muted);">${d.cores || 4} Logical Cores</div>
+            </td>
+            <td>
+              <div style="font-size:0.8rem; color:#fff;">${d.ramUsedGb || 0} / ${d.ramTotalGb || 16} GB</div>
+              <div style="width:100%; height:5px; background:rgba(255,255,255,0.1); border-radius:3px; margin-top:4px; overflow:hidden;">
+                <div style="width:${ramPct}%; height:100%; background:${ramColor};"></div>
+              </div>
+              <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">${ramPct}% Allocated</div>
+            </td>
+            <td>
+              <div style="font-size:0.8rem; color:#fff;">💽 ${escapeHtml(diskStr)}</div>
+              <div style="width:100%; height:5px; background:rgba(255,255,255,0.1); border-radius:3px; margin-top:4px; overflow:hidden;">
+                <div style="width:${diskPct}%; height:100%; background:#8b5cf6;"></div>
+              </div>
+              <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">${diskPct}% Used</div>
+            </td>
+            <td>
+              <div style="font-size:0.78rem; color:#fff;">☁️ Working IP: <strong>${escapeHtml(d.workingIp || '127.0.0.1')}</strong></div>
+              <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">LAN IP: ${escapeHtml(d.localIp || '127.0.0.1')}</div>
+            </td>
+            <td>${stBadge}</td>
+            <td>
+              <button class="btn-primary" onclick="openHardwareSpecsModal('${escapeHtml(d.assignedUser)}')" style="padding:4px 10px; font-size:0.75rem;">Inspect Specs</button>
+            </td>
+          </tr>
         `;
       }).join('');
     }
 
-    async function triggerScreenshotCapture() {
-      showToast('Capturing on-demand workstation screenshot...');
-      try {
-        const res = await apiFetch('/api/screenshots/capture', { method: 'POST' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) {
-            showToast('Desktop screenshot captured successfully!');
-            fetchScreenshots();
-            return;
-          }
-        }
-      } catch (err) {
-        console.error('Screenshot capture failed:', err);
+    function openHardwareSpecsModal(userOrMachine) {
+      let targetUser = currentLiveUsers.find(u => (u.user || '').toLowerCase() === (userOrMachine || '').toLowerCase() || (u.displayName || '').toLowerCase() === (userOrMachine || '').toLowerCase());
+      let specs = targetUser?.systemSpecs;
+      let devObj = currentDevices.find(d => (d.assignedUser || '').toLowerCase() === (userOrMachine || '').toLowerCase() || (d.machineName || '').toLowerCase() === (userOrMachine || '').toLowerCase());
+      if (!specs && devObj) specs = devObj;
+
+      const mName = specs?.machineName || targetUser?.machine || devObj?.machineName || 'Workstation';
+      const sNum = specs?.serialNumber || devObj?.serialNumber || 'SN-UNKNOWN';
+      const cpu = specs?.cpu || devObj?.cpu || 'Intel / AMD Processor Active';
+      const cores = specs?.cores || devObj?.cores || 8;
+      const ramTot = specs?.ramTotalGb || devObj?.ramTotalGb || 16.0;
+      const ramUsed = specs?.ramUsedGb || devObj?.ramUsedGb || 8.0;
+      const ramFree = specs?.ramFreeGb || devObj?.ramFreeGb || 8.0;
+      const ramPct = specs?.ramUsagePct || devObj?.ramUsagePct || 50;
+      const localIp = specs?.localIp || devObj?.localIp || '127.0.0.1';
+      const workingIp = targetUser?.workingIp || specs?.workingIp || devObj?.workingIp || '34.93.182.141';
+      const assignedName = targetUser?.displayName || devObj?.displayName || userOrMachine;
+      const teamName = targetUser?.team || devObj?.team || 'General Team';
+
+      document.getElementById('hwModalTitle').innerText = `🖥️ Hardware Audit: ${mName}`;
+      document.getElementById('hwModalSub').innerText = `Assigned to ${assignedName} • Team: ${teamName}`;
+
+      let drivesHtml = '';
+      const drivesList = specs?.storage || devObj?.storage || [{ drive: 'C:', totalGb: 476.0, freeGb: 128.0, usedGb: 348.0, usedPct: 73 }];
+      if (Array.isArray(drivesList) && drivesList.length > 0) {
+        drivesHtml = drivesList.map(dr => `
+          <div style="background:rgba(30,41,59,0.5); padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:#fff;">
+              <span>💽 Drive <strong>${escapeHtml(dr.drive || 'C:')}</strong></span>
+              <span><strong>${dr.freeGb} GB Free</strong> of ${dr.totalGb} GB (${dr.usedPct}% Used)</span>
+            </div>
+            <div style="width:100%; height:6px; background:rgba(255,255,255,0.1); border-radius:3px; margin-top:6px; overflow:hidden;">
+              <div style="width:${dr.usedPct}%; height:100%; background:#8b5cf6;"></div>
+            </div>
+          </div>
+        `).join('');
       }
-      showToast('Screenshot capture trigger failed.');
+
+      document.getElementById('hwModalBody').innerHTML = `
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
+          <div style="background:rgba(15,23,42,0.8); border:1px solid rgba(56,189,248,0.25); border-radius:8px; padding:14px;">
+            <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; letter-spacing:0.5px;">Computer Hostname</div>
+            <div style="font-size:1.15rem; font-weight:700; color:#fff; margin-top:4px;">🖥️ ${escapeHtml(mName)}</div>
+            <div style="font-size:0.75rem; color:#38bdf8; margin-top:2px;">Status: Online & Telemetry Active</div>
+          </div>
+
+          <div style="background:rgba(15,23,42,0.8); border:1px solid rgba(56,189,248,0.25); border-radius:8px; padding:14px;">
+            <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; letter-spacing:0.5px;">Motherboard / BIOS Serial</div>
+            <div style="font-size:1.05rem; font-weight:700; color:#10b981; margin-top:4px; display:flex; align-items:center; gap:8px;">
+              <code>${escapeHtml(sNum)}</code>
+              <button onclick="copyTextToClipboard('${escapeHtml(sNum)}')" style="padding:2px 6px; font-size:0.7rem; background:#1e293b; border:1px solid #334155; color:#fff; border-radius:4px; cursor:pointer;">Copy</button>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Hardware Unique Asset Tag</div>
+          </div>
+        </div>
+
+        <div style="background:rgba(15,23,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:14px; margin-bottom:14px;">
+          <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Processor Architecture (CPU)</div>
+          <div style="font-size:0.95rem; font-weight:600; color:#fff; margin-top:4px;">⚙️ ${escapeHtml(cpu)}</div>
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Cores & Threads: <strong>${cores} Logical Execution Cores</strong></div>
+        </div>
+
+        <div style="background:rgba(15,23,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:14px; margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Physical Memory (RAM)</div>
+            <div style="font-size:0.85rem; font-weight:700; color:#38bdf8;">${ramUsed} GB In Use / ${ramTot} GB Total (${ramPct}%)</div>
+          </div>
+          <div style="width:100%; height:8px; background:rgba(255,255,255,0.1); border-radius:4px; margin-top:8px; overflow:hidden;">
+            <div style="width:${ramPct}%; height:100%; background:${ramPct > 85 ? '#f43f5e' : (ramPct > 70 ? '#f59e0b' : '#10b981')};"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+            <span>Free RAM: <strong style="color:#10b981;">${ramFree} GB</strong></span>
+            <span>Memory Pressure: <strong style="color:#fff;">${ramPct < 75 ? 'Healthy / Optimal' : 'Moderate'}</strong></span>
+          </div>
+        </div>
+
+        <div style="background:rgba(15,23,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:14px; margin-bottom:14px;">
+          <div style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700; margin-bottom:10px;">Fixed Disk Storage Drives</div>
+          ${drivesHtml}
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div style="background:rgba(15,23,42,0.8); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:12px;">
+            <div style="font-size:0.72rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Local LAN IPv4</div>
+            <div style="font-size:0.95rem; font-weight:700; color:#fff; margin-top:3px;">🌐 ${escapeHtml(localIp)}</div>
+          </div>
+          <div style="background:rgba(15,23,42,0.8); border:1px solid rgba(56,189,248,0.25); border-radius:8px; padding:12px;">
+            <div style="font-size:0.72rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">Public Working Cloud IP</div>
+            <div style="font-size:0.95rem; font-weight:700; color:#38bdf8; margin-top:3px;">☁️ ${escapeHtml(workingIp)}</div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('hardwareSpecsModal').style.display = 'flex';
     }
 
-    function openScreenshotLightbox(url, title, time) {
-      currentLightboxUrl = url;
-      document.getElementById('lightboxTitle').innerText = title || 'Workstation Screenshot';
-      document.getElementById('lightboxImg').src = url;
-      document.getElementById('lightboxMeta').innerHTML = `Captured: <strong>${escapeHtml(time)}</strong> &nbsp;|&nbsp; Target: <strong>System Workstation</strong>`;
-      document.getElementById('screenshotLightboxModal').style.display = 'flex';
+    function closeHardwareSpecsModal() {
+      document.getElementById('hardwareSpecsModal').style.display = 'none';
     }
 
-    function closeLightboxModal() {
-      document.getElementById('screenshotLightboxModal').style.display = 'none';
-      document.getElementById('lightboxImg').src = '';
-    }
-
-    function downloadLightboxImage() {
-      if (currentLightboxUrl) {
-        const a = document.createElement('a');
-        a.href = currentLightboxUrl;
-        a.download = 'screenshot_' + Date.now() + '.jpg';
-        a.click();
-      }
+    function copyTextToClipboard(text) {
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(`Copied: ${text}`);
+      }).catch(() => {
+        showToast(`Copied: ${text}`);
+      });
     }
 
     // --- TAB 4: SHIFT TIMESHEETS ---
@@ -1428,7 +1610,7 @@
             <td><strong>${escapeHtml(u.displayName || u.username)}</strong></td>
             <td>${escapeHtml(u.department || 'Engineering')}</td>
             <td>${escapeHtml(u.role || 'Specialist')}</td>
-            <td><code>${escapeHtml(u.machine || 'Workstation')}</code></td>
+            <td><code>${escapeHtml(u.team || u.machine || 'General Team')}</code></td>
             <td>${u.targetDailyHours || 8.0}h / day</td>
             <td>${u.idleThresholdSeconds || 600}s</td>
             <td><span class="badge-tag badge-prod">Active</span></td>
@@ -1449,12 +1631,11 @@
       document.getElementById('usrPassword').value = '';
       document.getElementById('usrDepartment').value = 'Engineering';
       document.getElementById('usrRole').value = 'Specialist / Employee';
-      document.getElementById('usrMachine').value = 'Workstation';
+      document.getElementById('usrTeam').value = 'Engineering Team';
       document.getElementById('usrTargetHours').value = '8.0';
       document.getElementById('usrIdleTimeout').value = '600';
       document.getElementById('usrEnableAppTracking').checked = true;
       document.getElementById('usrEnableBrowserTracking').checked = true;
-      document.getElementById('usrEnableScreenshots').checked = false;
       document.getElementById('userModal').style.display = 'flex';
     }
 
@@ -1473,34 +1654,40 @@
       document.getElementById('usrPassword').value = u.password || '';
       document.getElementById('usrDepartment').value = u.department || 'Engineering';
       document.getElementById('usrRole').value = u.role || 'Specialist';
-      document.getElementById('usrMachine').value = u.machine || 'Workstation';
+      document.getElementById('usrTeam').value = u.team || u.machine || 'Engineering Team';
       document.getElementById('usrTargetHours').value = u.targetDailyHours || 8.0;
       document.getElementById('usrIdleTimeout').value = u.idleThresholdSeconds || 600;
       document.getElementById('usrEnableAppTracking').checked = u.enableAppTracking !== false;
       document.getElementById('usrEnableBrowserTracking').checked = u.enableBrowserTracking !== false;
-      document.getElementById('usrEnableScreenshots').checked = !!u.enableScreenshots;
       document.getElementById('userModal').style.display = 'flex';
     }
 
     async function saveUserRecord() {
       const username = document.getElementById('usrUsername').value.trim();
+      const password = document.getElementById('usrPassword').value.trim();
       if (!username) {
         alert('Username is required.');
         return;
       }
+      if (!password && !document.getElementById('usrUsername').disabled) {
+        alert('Account password is required.');
+        return;
+      }
+
+      const teamName = document.getElementById('usrTeam').value.trim() || 'General Team';
 
       const payload = {
         username: username,
         displayName: document.getElementById('usrDisplayName').value.trim() || username,
-        password: document.getElementById('usrPassword').value.trim(),
+        password: password,
         department: document.getElementById('usrDepartment').value.trim() || 'General',
+        team: teamName,
         role: document.getElementById('usrRole').value.trim() || 'Employee',
-        machine: document.getElementById('usrMachine').value.trim() || 'Workstation',
+        machine: teamName,
         targetDailyHours: parseFloat(document.getElementById('usrTargetHours').value || 8.0),
         idleThresholdSeconds: parseInt(document.getElementById('usrIdleTimeout').value || 600, 10),
         enableAppTracking: document.getElementById('usrEnableAppTracking').checked,
-        enableBrowserTracking: document.getElementById('usrEnableBrowserTracking').checked,
-        enableScreenshots: document.getElementById('usrEnableScreenshots').checked
+        enableBrowserTracking: document.getElementById('usrEnableBrowserTracking').checked
       };
 
       try {
@@ -1572,8 +1759,7 @@
           idleThresholdSeconds: parseInt(document.getElementById('cfgIdleTimeout').value || 600, 10),
           tickIntervalSeconds: parseInt(document.getElementById('cfgTickInterval').value || 30, 10),
           enableAppTracking: true,
-          enableBrowserUrlTracking: true,
-          enableScreenshots: false
+          enableBrowserUrlTracking: true
         },
         productivityRules: {
           productiveApps: prodApps,

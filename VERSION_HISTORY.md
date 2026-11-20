@@ -1,5 +1,30 @@
 # Version History — Vserve-TimeChamp
 
+## [v1.3.1] — 2026-11-20
+
+### Type: Feature / Security / Auto-Update / Hardware Telemetry / UI-UX Modernization
+### Added:
+- **Zero-Touch Background Auto-Update Engine**:
+  - The client tracking executable (`vserve-timechamp-setup.exe`) periodically checks the central cloud server (`/api/client/version`) on startup and every 5 minutes.
+  - When changes or new builds are deployed to the server, the client quietly downloads `update_pending.exe`, launches an asynchronous replacement runner, seamlessly replaces itself, and restarts with `--autostart` without interrupting employee work.
+- **Real-Time Device & Hardware Inventory System**:
+  - Automatically queries machine motherboard/BIOS Serial Number via Win32 WMI and Registry fallback (`Win32_BIOS`).
+  - Gathers dynamic CPU model, Logical Cores, and instant RAM memory usage (Total, Used, Free, Load %) via Win32 `GlobalMemoryStatusEx`.
+  - Gathers local Fixed Disks storage capacities and utilization via `DriveInfo`.
+  - Detects public working IP on the server via `x-forwarded-for` / socket address, alongside local LAN IPv4.
+  - Dedicated **Device & Hardware Inventory** tab on Admin Dashboard with hardware KPI statistics and interactive modal breakdown.
+- **Locked Tracking Server URL**:
+  - Tracking server URL is permanently locked to `http://34.93.182.141:3000` inside the client executable. Employees cannot view or edit server endpoints.
+- **Strict Password Authentication Enforcement**:
+  - Passwords are strictly required for both Admin Portal sign-in and Employee Client tracking login.
+  - Created initial credentials for `Samuel P` (Admin / Lead) with password `Samuel@2026`.
+- **Term Standardization ("Team Name")**:
+  - Renamed all UI references from "Workstation" / "Assigned Workstation Name" to "Team Name" across timesheets, employee directories, and registration modals.
+- **Zero-Screenshot Architecture**:
+  - Completely purged all screenshot viewer tabs, buttons, checkboxes, background capture routines, and storage endpoints across both server and client.
+
+---
+
 ## [v1.3.0] — 2026-11-20
 
 ### Type: Feature / Security / Deployment

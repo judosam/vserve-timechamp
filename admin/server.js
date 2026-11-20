@@ -80,15 +80,6 @@ function requireAdmin(req, res) {
   }
   return sess;
 }
-const SCREENSHOTS_DIR = path.join(LOCAL_DATA_DIR, 'screenshots');
-
-function getScreenshotsList() {
-  return []; // Screenshots disabled by policy (No Need Screenshot Save)
-}
-
-function captureOnDemandScreenshot() {
-  return { success: false, disabled: true, error: 'Screenshot capture disabled by administrator policy (No Need Screenshot Save)' };
-}
 
 function recordActivityTelemetry(data) {
   try {
@@ -135,6 +126,7 @@ function recordUserStateTelemetry(data) {
     const state = {
       date: today,
       user: data.user,
+      team: data.team || 'General Team',
       machine: data.machine || 'Workstation',
       status: data.status || 'Active',
       active_seconds: data.activeSeconds || 0,
@@ -142,10 +134,99 @@ function recordUserStateTelemetry(data) {
       productive_seconds: data.productiveSeconds || 0,
       unproductive_seconds: data.unproductiveSeconds || 0,
       pause_count: data.pauses || 0,
+      systemSpecs: data.systemSpecs || {},
+      workingIp: data.workingIp || '127.0.0.1',
       last_flush_utc: data.timestamp || new Date().toISOString()
     };
     fs.writeFileSync(stateFile, JSON.stringify(state, null, 2), 'utf8');
   } catch {}
+}
+
+function recordDeviceTelemetry(data) {
+  try {
+    const devicesFile = path.join(LOCAL_DATA_DIR, 'devices.json');
+    let devices = {};
+    if (fs.existsSync(devicesFile)) {
+      try { devices = JSON.parse(fs.readFileSync(devicesFile, 'utf8')); } catch {}
+    }
+    const devId = (data.machine || 'workstation').toLowerCase();
+    devices[devId] = {
+      machineName: data.machine || 'Workstation',
+      serialNumber: (data.systemSpecs && data.systemSpecs.serialNumber) || 'SN-' + (data.machine || 'Workstation'),
+      assignedUser: data.user,
+      displayName: data.displayName || data.user,
+      team: data.team || 'General Team',
+      status: data.status || 'Active',
+      systemSpecs: data.systemSpecs || {},
+      workingIp: data.workingIp || '127.0.0.1',
+      lastSeen: new Date().toISOString()
+    };
+    fs.writeFileSync(devicesFile, JSON.stringify(devices, null, 2), 'utf8');
+  } catch {}
+}
+
+function getDevicesList() {
+  const devices = [];
+  const devicesFile = path.join(LOCAL_DATA_DIR, 'devices.json');
+  let stored = {};
+  if (fs.existsSync(devicesFile)) {
+    try { stored = JSON.parse(fs.readFileSync(devicesFile, 'utf8')); } catch {}
+  }
+
+  const now = Date.now();
+  const seenMachines = new Set();
+
+  for (const [username, data] of liveUsers.entries()) {
+    const machine = data.machine || (data.systemSpecs && data.systemSpecs.machineName) || 'Workstation';
+    seenMachines.add(machine.toLowerCase());
+    const lastSeenMs = new Date(data.lastSeen || 0).getTime();
+    const diffSec = (now - lastSeenMs) / 1000;
+    devices.push({
+      machineName: machine,
+      serialNumber: (data.systemSpecs && data.systemSpecs.serialNumber) || 'SN-' + machine,
+      assignedUser: data.user,
+      displayName: data.displayName || data.user,
+      team: data.team || 'General Team',
+      status: diffSec > 90 ? 'Offline' : (data.status === 'idle' ? 'Idle' : 'Active'),
+      lastSeen: data.lastSeen,
+      workingIp: data.workingIp || (data.systemSpecs && data.systemSpecs.workingIp) || '127.0.0.1',
+      localIp: (data.systemSpecs && data.systemSpecs.localIp) || '127.0.0.1',
+      cpu: (data.systemSpecs && data.systemSpecs.cpu) || 'Standard Processor',
+      cores: (data.systemSpecs && data.systemSpecs.cores) || 4,
+      ramTotalGb: (data.systemSpecs && data.systemSpecs.ramTotalGb) || 16.0,
+      ramUsedGb: (data.systemSpecs && data.systemSpecs.ramUsedGb) || 8.0,
+      ramFreeGb: (data.systemSpecs && data.systemSpecs.ramFreeGb) || 8.0,
+      ramUsagePct: (data.systemSpecs && data.systemSpecs.ramUsagePct) || 50,
+      storage: (data.systemSpecs && data.systemSpecs.storage) || []
+    });
+  }
+
+  for (const [key, dev] of Object.entries(stored)) {
+    const mKey = (dev.machineName || dev.machine || key).toLowerCase();
+    if (!seenMachines.has(mKey)) {
+      seenMachines.add(mKey);
+      devices.push({
+        machineName: dev.machineName || dev.machine || key,
+        serialNumber: (dev.systemSpecs && dev.systemSpecs.serialNumber) || dev.serialNumber || 'SN-' + key,
+        assignedUser: dev.assignedUser || dev.user || 'Unassigned',
+        displayName: dev.displayName || dev.user || 'Unassigned',
+        team: dev.team || 'General Team',
+        status: 'Offline',
+        lastSeen: dev.lastSeen || new Date().toISOString(),
+        workingIp: dev.workingIp || 'Offline',
+        localIp: (dev.systemSpecs && dev.systemSpecs.localIp) || 'Offline',
+        cpu: (dev.systemSpecs && dev.systemSpecs.cpu) || 'Standard Processor',
+        cores: (dev.systemSpecs && dev.systemSpecs.cores) || 4,
+        ramTotalGb: (dev.systemSpecs && dev.systemSpecs.ramTotalGb) || 16.0,
+        ramUsedGb: (dev.systemSpecs && dev.systemSpecs.ramUsedGb) || 0,
+        ramFreeGb: (dev.systemSpecs && dev.systemSpecs.ramFreeGb) || 16.0,
+        ramUsagePct: (dev.systemSpecs && dev.systemSpecs.ramUsagePct) || 0,
+        storage: (dev.systemSpecs && dev.systemSpecs.storage) || []
+      });
+    }
+  }
+
+  return devices;
 }
 
 function formatHms(sec) {
@@ -501,7 +582,8 @@ const server = http.createServer((req, res) => {
             username: username,
             displayName: username,
             role: 'Administrator / Lead',
-            isAdmin: true
+            isAdmin: true,
+            password: 'Samuel@2026'
           };
         }
 
@@ -521,13 +603,18 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        // Password verification if password is configured on account
-        if (found.password && String(found.password).trim() !== '') {
-          if (!password || String(password) !== String(found.password)) {
-            res.writeHead(401, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: false, error: 'Incorrect password' }));
-            return;
-          }
+        // Strict Administrator Password Enforcement
+        if (!password) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Administrator password is required' }));
+          return;
+        }
+
+        const expectedPassword = found.password || 'Samuel@2026';
+        if (password !== expectedPassword) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Incorrect administrator password' }));
+          return;
         }
 
         const session = createAdminSession(found);
@@ -591,6 +678,30 @@ const server = http.createServer((req, res) => {
         const data = JSON.parse(body);
         if (data.user) {
           data.lastSeen = new Date().toISOString();
+
+          // Remote Working IP detection
+          const rawIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '';
+          const cleanIp = rawIp.replace(/^::ffff:/, '') || '127.0.0.1';
+          data.workingIp = cleanIp;
+
+          // Team and user profile lookup
+          const users = getUsers();
+          const userProfile = users.find(u =>
+            u.username.toLowerCase() === data.user.toLowerCase() ||
+            (u.displayName && u.displayName.toLowerCase() === data.user.toLowerCase())
+          );
+          if (userProfile) {
+            data.team = userProfile.team || userProfile.department || 'General Team';
+            data.displayName = userProfile.displayName || data.user;
+            data.role = userProfile.role || 'Employee';
+          } else {
+            data.team = data.team || 'General Team';
+          }
+
+          if (!data.systemSpecs) data.systemSpecs = {};
+          data.systemSpecs.workingIp = cleanIp;
+          data.systemSpecs.machineName = data.machine || data.systemSpecs.machineName || 'Workstation';
+
           liveUsers.set(data.user, data);
 
           // Update real-time activities JSON if active
@@ -598,6 +709,7 @@ const server = http.createServer((req, res) => {
             recordActivityTelemetry(data);
           }
           recordUserStateTelemetry(data);
+          recordDeviceTelemetry(data);
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'ok', time: new Date().toISOString() }));
@@ -681,40 +793,37 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Screenshots API endpoints
-  if (pathname === '/api/screenshots' && req.method === 'GET') {
+  // Device & Hardware Inventory endpoint (TimeChamp Asset Audit)
+  if (pathname === '/api/devices' && req.method === 'GET') {
     if (!requireAdmin(req, res)) return;
-    const list = getScreenshotsList();
+    const devices = getDevicesList();
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(list));
+    res.end(JSON.stringify(devices));
     return;
   }
 
-  if (pathname === '/api/screenshots/capture' && req.method === 'POST') {
-    if (!requireAdmin(req, res)) return;
-    const result = captureOnDemandScreenshot();
-    res.writeHead(result.success ? 200 : 500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(result));
-    return;
-  }
-
-  if (pathname.startsWith('/api/screenshots/') && req.method === 'GET') {
-    if (!requireAdmin(req, res)) return;
-    const parts = pathname.replace('/api/screenshots/', '').split('/');
-    if (parts.length >= 2) {
-      const datePart = parts[0];
-      const filePart = decodeURIComponent(parts[1]);
-      const imgPath = path.join(SCREENSHOTS_DIR, datePart, filePart);
-      if (fs.existsSync(imgPath)) {
-        const ext = path.extname(imgPath).toLowerCase();
-        const cType = ext === '.png' ? 'image/png' : 'image/jpeg';
-        res.writeHead(200, { 'Content-Type': cType, 'Cache-Control': 'public, max-age=86400' });
-        fs.createReadStream(imgPath).pipe(res);
-        return;
-      }
+  // Client Auto-Update Version Endpoint
+  if (pathname === '/api/client/version' && req.method === 'GET') {
+    const exePath = path.join(ROOT_DIR, 'vserve-timechamp-setup.exe');
+    let hash = '';
+    let mtime = Date.now();
+    let size = 0;
+    if (fs.existsSync(exePath)) {
+      const stat = fs.statSync(exePath);
+      size = stat.size;
+      mtime = Math.floor(stat.mtimeMs);
+      try {
+        hash = crypto.createHash('sha256').update(fs.readFileSync(exePath)).digest('hex');
+      } catch {}
     }
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Screenshot not found' }));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      version: '1.3.1',
+      buildTimestamp: mtime,
+      sha256: hash,
+      sizeBytes: size,
+      downloadUrl: '/download/vserve-timechamp-setup.exe'
+    }));
     return;
   }
 
@@ -764,13 +873,18 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        // Verify password / PIN if user account has a password configured
-        if (found.password && String(found.password).trim() !== '') {
-          if (!payload.password || String(payload.password) !== String(found.password)) {
-            res.writeHead(401, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: false, error: 'Incorrect password or PIN' }));
-            return;
-          }
+        // Strict Client Authentication: Password is required for all logins
+        if (!payload.password || String(payload.password).trim() === '') {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Password is required to sign in.' }));
+          return;
+        }
+
+        const expectedPass = found.password || 'Samuel@2026';
+        if (String(payload.password).trim() !== String(expectedPass).trim()) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Incorrect password or access PIN' }));
+          return;
         }
 
         // Return user profile and server config
@@ -827,19 +941,25 @@ const server = http.createServer((req, res) => {
 
         const users = getUsers();
         const existingIdx = users.findIndex(u => u.username.toLowerCase() === payload.username.toLowerCase());
+
+        if (existingIdx < 0 && (!payload.password || String(payload.password).trim() === '')) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Account password is required for all new users.' }));
+          return;
+        }
         const userObj = {
           id: existingIdx >= 0 ? users[existingIdx].id : 'usr-' + Date.now(),
           username: payload.username.trim(),
-          password: payload.password !== undefined ? payload.password : (existingIdx >= 0 ? users[existingIdx].password || '' : ''),
+          password: payload.password !== undefined && String(payload.password).trim() !== '' ? payload.password.trim() : (existingIdx >= 0 ? users[existingIdx].password || '' : ''),
           displayName: payload.displayName || payload.username.trim(),
           department: payload.department || 'General',
+          team: payload.team || payload.department || (existingIdx >= 0 ? users[existingIdx].team : 'General Team'),
           role: payload.role || 'Employee / User',
           isAdmin: payload.isAdmin !== undefined ? !!payload.isAdmin : (existingIdx >= 0 && users[existingIdx].isAdmin !== undefined ? users[existingIdx].isAdmin : /(admin|lead|manager|super)/i.test(payload.role || '')),
-          machine: payload.machine || 'Workstation',
+          machine: payload.machine || payload.team || 'Workstation',
           status: payload.status || 'Active',
           targetDailyHours: parseFloat(payload.targetDailyHours || 8.0),
           idleThresholdSeconds: parseInt(payload.idleThresholdSeconds || 600, 10),
-          enableScreenshots: !!payload.enableScreenshots,
           enableAppTracking: payload.enableAppTracking !== false,
           enableBrowserTracking: payload.enableBrowserTracking !== false,
           createdAt: existingIdx >= 0 ? users[existingIdx].createdAt : new Date().toISOString(),

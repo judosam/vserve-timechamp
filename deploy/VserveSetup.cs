@@ -11,6 +11,10 @@ using System.Text;
 using System.Net;
 using System.Threading;
 using System.Web.Script.Serialization;
+using System.Management;
+using System.Net.NetworkInformation;
+using System.Reflection;
+using System.Security.Cryptography;
 using Microsoft.Win32;
 
 namespace VserveTimeChamp {
@@ -277,6 +281,184 @@ namespace VserveTimeChamp {
         }
     }
 
+    // =========================================================================
+    // SYSTEM HARDWARE TELEMETRY GATHERER (TimeChamp Hardware Asset Audit)
+    // =========================================================================
+    public static class SystemTelemetry {
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        public class MEMORYSTATUSEX {
+            public uint dwLength;
+            public uint dwMemoryLoad;
+            public ulong ullTotalPhys;
+            public ulong ullAvailPhys;
+            public ulong ullTotalPageFile;
+            public ulong ullAvailPageFile;
+            public ulong ullTotalVirtual;
+            public ulong ullAvailVirtual;
+            public ulong ullAvailExtendedVirtual;
+            public MEMORYSTATUSEX() {
+                this.dwLength = (uint)Marshal.SizeOf(typeof(MEMORYSTATUSEX));
+            }
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool GlobalMemoryStatusEx([In, Out] MEMORYSTATUSEX lpBuffer);
+
+        private static Dictionary<string, object> cachedStaticSpecs = null;
+        private static DateTime lastRefresh = DateTime.MinValue;
+
+        public static Dictionary<string, object> GetCachedSpecs() {
+            if (cachedStaticSpecs == null || (DateTime.UtcNow - lastRefresh).TotalSeconds > 120) {
+                cachedStaticSpecs = new Dictionary<string, object>();
+                cachedStaticSpecs["machineName"] = Environment.MachineName;
+                cachedStaticSpecs["serialNumber"] = GetBiosSerialNumber();
+                cachedStaticSpecs["cpu"] = GetCpuName();
+                cachedStaticSpecs["cores"] = Environment.ProcessorCount;
+                cachedStaticSpecs["localIp"] = GetLocalIpAddress();
+                lastRefresh = DateTime.UtcNow;
+            }
+
+            Dictionary<string, object> current = new Dictionary<string, object>(cachedStaticSpecs);
+
+            // Dynamic RAM Memory via Win32 API
+            try {
+                MEMORYSTATUSEX mem = new MEMORYSTATUSEX();
+                if (GlobalMemoryStatusEx(mem)) {
+                    double totalGb = Math.Round((double)mem.ullTotalPhys / (1024.0 * 1024.0 * 1024.0), 1);
+                    double availGb = Math.Round((double)mem.ullAvailPhys / (1024.0 * 1024.0 * 1024.0), 1);
+                    double usedGb = Math.Round(totalGb - availGb, 1);
+                    current["ramTotalGb"] = totalGb;
+                    current["ramUsedGb"] = usedGb;
+                    current["ramFreeGb"] = availGb;
+                    current["ramUsagePct"] = (int)mem.dwMemoryLoad;
+                }
+            } catch {}
+
+            // Dynamic Fixed Storage Drives via DriveInfo
+            try {
+                List<object> drives = new List<object>();
+                foreach (DriveInfo d in DriveInfo.GetDrives()) {
+                    if (d.IsReady && d.DriveType == DriveType.Fixed) {
+                        double tot = Math.Round((double)d.TotalSize / (1024.0 * 1024.0 * 1024.0), 1);
+                        double free = Math.Round((double)d.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0), 1);
+                        double used = Math.Round(tot - free, 1);
+                        int pct = tot > 0 ? (int)Math.Round((used / tot) * 100) : 0;
+                        Dictionary<string, object> drv = new Dictionary<string, object>();
+                        drv["drive"] = d.Name.Replace("\\", "");
+                        drv["totalGb"] = tot;
+                        drv["freeGb"] = free;
+                        drv["usedGb"] = used;
+                        drv["usedPct"] = pct;
+                        drives.Add(drv);
+                    }
+                }
+                current["storage"] = drives;
+            } catch {}
+
+            return current;
+        }
+
+        private static string GetBiosSerialNumber() {
+            try {
+                using (ManagementObjectSearcher mos = new ManagementObjectSearcher("SELECT SerialNumber FROM Win32_BIOS")) {
+                    foreach (ManagementObject mo in mos.Get()) {
+                        if (mo["SerialNumber"] != null) {
+                            string sn = mo["SerialNumber"].ToString().Trim();
+                            if (!string.IsNullOrEmpty(sn) && sn.ToLower() != "to be filled by o.e.m.") return sn;
+                        }
+                    }
+                }
+            } catch {}
+
+            try {
+                object val = Registry.GetValue(@"HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\BIOS", "SystemSerialNumber", null);
+                if (val != null && !string.IsNullOrEmpty(val.ToString().Trim())) return val.ToString().Trim();
+            } catch {}
+
+            return "SN-" + Environment.MachineName.GetHashCode().ToString("X8");
+        }
+
+        private static string GetCpuName() {
+            try {
+                object val = Registry.GetValue(@"HKEY_LOCAL_MACHINE\HARDWARE\DESCRIPTION\System\CentralProcessor\0", "ProcessorNameString", null);
+                if (val != null) {
+                    string name = val.ToString().Trim();
+                    if (!string.IsNullOrEmpty(name)) return name;
+                }
+            } catch {}
+
+            return "CPU (" + Environment.ProcessorCount + " Logical Cores)";
+        }
+
+        private static string GetLocalIpAddress() {
+            try {
+                IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+                foreach (IPAddress ip in host.AddressList) {
+                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !IPAddress.IsLoopback(ip)) {
+                        return ip.ToString();
+                    }
+                }
+            } catch {}
+            return "127.0.0.1";
+        }
+    }
+
+    // =========================================================================
+    // SILENT ZERO-TOUCH AUTO-UPDATE SYSTEM
+    // =========================================================================
+    public static class AutoUpdater {
+        public static long CurrentBuildTimestamp = 1795155600000;
+        private static bool isUpdating = false;
+
+        public static void CheckAndUpdateAsync(string serverUrl, string targetDir) {
+            if (isUpdating) return;
+            ThreadPool.QueueUserWorkItem(s => {
+                try {
+                    using (WebClient wc = new WebClient()) {
+                        wc.Encoding = Encoding.UTF8;
+                        string json = wc.DownloadString(serverUrl + "/api/client/version");
+                        JavaScriptSerializer ser = new JavaScriptSerializer();
+                        Dictionary<string, object> vInfo = ser.Deserialize<Dictionary<string, object>>(json);
+                        if (vInfo != null && vInfo.ContainsKey("buildTimestamp")) {
+                            long srvTimestamp = Convert.ToInt64(vInfo["buildTimestamp"]);
+                            if (srvTimestamp > CurrentBuildTimestamp) {
+                                isUpdating = true;
+                                string pendingExe = Path.Combine(targetDir, "update_pending.exe");
+                                string currentExe = Process.GetCurrentProcess().MainModule.FileName;
+                                wc.DownloadFile(serverUrl + "/download/vserve-timechamp-setup.exe", pendingExe);
+                                FileInfo fi = new FileInfo(pendingExe);
+                                if (fi.Exists && fi.Length > 50000) {
+                                    string updaterBat = Path.Combine(targetDir, "updater.bat");
+                                    int pid = Process.GetCurrentProcess().Id;
+                                    string script = "@echo off\r\n" +
+                                        "timeout /t 2 /nobreak >nul\r\n" +
+                                        "taskkill /F /PID " + pid + " >nul 2>&1\r\n" +
+                                        "copy /y \"" + pendingExe + "\" \"" + currentExe + "\" >nul\r\n" +
+                                        "del \"" + pendingExe + "\" >nul 2>&1\r\n" +
+                                        "start \"\" \"" + currentExe + "\" --autostart\r\n" +
+                                        "del \"%~f0\"\r\n";
+                                    File.WriteAllText(updaterBat, script, Encoding.ASCII);
+                                    ProcessStartInfo psi = new ProcessStartInfo {
+                                        FileName = updaterBat,
+                                        WindowStyle = ProcessWindowStyle.Hidden,
+                                        CreateNoWindow = true,
+                                        UseShellExecute = true
+                                    };
+                                    Process.Start(psi);
+                                    Application.Exit();
+                                    Environment.Exit(0);
+                                }
+                            }
+                        }
+                    }
+                } catch {}
+                finally {
+                    isUpdating = false;
+                }
+            });
+        }
+    }
+
     // Main Floating Tracking & Login Window
     public class TrackerMainForm : Form {
         private string targetDir;
@@ -315,7 +497,7 @@ namespace VserveTimeChamp {
 
         // Login Controls
         private ComboBox cbUsers;
-        private TextBox txtServerUrl;
+        private Label lblServerFixed;
         private TextBox txtPassword;
         private Label lblLoginStatus;
         private Button btnSignIn;
@@ -345,6 +527,9 @@ namespace VserveTimeChamp {
 
             // Load saved session or existing state
             LoadSavedSession();
+
+            // Background Auto-Update Check on Startup
+            AutoUpdater.CheckAndUpdateAsync(serverUrl, targetDir);
 
             if (isAutostart && !string.IsNullOrEmpty(currentUser)) {
                 // If auto-started and already logged in, start minimized to tray
@@ -471,33 +656,24 @@ namespace VserveTimeChamp {
             lblHeroSub.Location = new Point(25, 48);
             lblHeroSub.Size = new Size(350, 32);
 
-            // Server URL Label & Box
+            // Server URL Label & Read-Only Protected Indicator
             Label lblSrv = new Label();
-            lblSrv.Text = "TRACKING SERVER URL";
+            lblSrv.Text = "CLOUD TRACKING SERVER (LOCKED)";
             lblSrv.Font = new Font("Segoe UI", 7.5f, FontStyle.Bold);
             lblSrv.ForeColor = Color.FromArgb(100, 116, 139);
             lblSrv.Location = new Point(25, 90);
             lblSrv.AutoSize = true;
 
-            txtServerUrl = new TextBox();
-            txtServerUrl.Text = serverUrl;
-            txtServerUrl.Location = new Point(25, 108);
-            txtServerUrl.Size = new Size(270, 26);
-            txtServerUrl.BackColor = Color.FromArgb(30, 41, 59);
-            txtServerUrl.ForeColor = Color.White;
-            txtServerUrl.BorderStyle = BorderStyle.FixedSingle;
-            txtServerUrl.Font = new Font("Segoe UI", 9f);
-
-            Button btnRefreshUsers = new Button();
-            btnRefreshUsers.Text = "Refresh";
-            btnRefreshUsers.Location = new Point(302, 108);
-            btnRefreshUsers.Size = new Size(76, 26);
-            btnRefreshUsers.FlatStyle = FlatStyle.Flat;
-            btnRefreshUsers.BackColor = Color.FromArgb(37, 99, 235);
-            btnRefreshUsers.ForeColor = Color.White;
-            btnRefreshUsers.Font = new Font("Segoe UI", 8f, FontStyle.Bold);
-            btnRefreshUsers.Cursor = Cursors.Hand;
-            btnRefreshUsers.Click += (s, e) => FetchUsersFromServer();
+            lblServerFixed = new Label();
+            lblServerFixed.Text = "\uD83D\uDD12 http://34.93.182.141:3000 (Central Tracking Cloud)";
+            lblServerFixed.Location = new Point(25, 108);
+            lblServerFixed.Size = new Size(353, 26);
+            lblServerFixed.BackColor = Color.FromArgb(15, 23, 42);
+            lblServerFixed.ForeColor = Color.FromArgb(56, 189, 248);
+            lblServerFixed.BorderStyle = BorderStyle.FixedSingle;
+            lblServerFixed.Font = new Font("Segoe UI", 8.5f, FontStyle.Bold);
+            lblServerFixed.TextAlign = ContentAlignment.MiddleLeft;
+            lblServerFixed.Padding = new Padding(6, 0, 0, 0);
 
             // Username Label & ComboBox
             Label lblUser = new Label();
@@ -517,7 +693,7 @@ namespace VserveTimeChamp {
 
             // Password / PIN Label & Box
             Label lblPass = new Label();
-            lblPass.Text = "PASSWORD / ACCESS PIN (OPTIONAL)";
+            lblPass.Text = "ACCOUNT PASSWORD / PIN * (REQUIRED)";
             lblPass.Font = new Font("Segoe UI", 7.5f, FontStyle.Bold);
             lblPass.ForeColor = Color.FromArgb(100, 116, 139);
             lblPass.Location = new Point(25, 210);
@@ -574,8 +750,7 @@ namespace VserveTimeChamp {
             loginPanel.Controls.Add(lblHero);
             loginPanel.Controls.Add(lblHeroSub);
             loginPanel.Controls.Add(lblSrv);
-            loginPanel.Controls.Add(txtServerUrl);
-            loginPanel.Controls.Add(btnRefreshUsers);
+            loginPanel.Controls.Add(lblServerFixed);
             loginPanel.Controls.Add(lblUser);
             loginPanel.Controls.Add(cbUsers);
             loginPanel.Controls.Add(lblPass);
@@ -949,6 +1124,11 @@ namespace VserveTimeChamp {
                     FlushStateToDisk();
                 });
             }
+
+            // 6. Check for Zero-Touch Updates every 5 minutes (300 seconds)
+            if (heartbeatTicks % 300 == 0) {
+                AutoUpdater.CheckAndUpdateAsync(serverUrl, targetDir);
+            }
         }
 
         private string ClassifyActivity(string app, string url) {
@@ -1045,8 +1225,7 @@ namespace VserveTimeChamp {
         }
 
         private void FetchUsersFromServer() {
-            serverUrl = txtServerUrl.Text.Trim();
-            if (string.IsNullOrEmpty(serverUrl)) serverUrl = "http://34.93.182.141:3000";
+            serverUrl = "http://34.93.182.141:3000";
 
             lblLoginStatus.Text = "Connecting to " + serverUrl + "...";
             lblLoginStatus.ForeColor = Color.FromArgb(56, 189, 248);
@@ -1088,10 +1267,16 @@ namespace VserveTimeChamp {
         private void BtnSignIn_Click(object sender, EventArgs e) {
             string user = cbUsers.Text.Trim();
             string pass = txtPassword.Text.Trim();
-            serverUrl = txtServerUrl.Text.Trim();
+            serverUrl = "http://34.93.182.141:3000";
 
             if (string.IsNullOrEmpty(user)) {
                 lblLoginStatus.Text = "Please enter or select your employee username.";
+                lblLoginStatus.ForeColor = Color.FromArgb(239, 68, 68);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(pass)) {
+                lblLoginStatus.Text = "[!] Password is required to sign in.";
                 lblLoginStatus.ForeColor = Color.FromArgb(239, 68, 68);
                 return;
             }
@@ -1229,6 +1414,7 @@ namespace VserveTimeChamp {
                     hb["windowTitle"] = currentTitle;
                     hb["url"] = currentUrl;
                     hb["pauses"] = pauseCount;
+                    hb["systemSpecs"] = SystemTelemetry.GetCachedSpecs();
                     hb["timestamp"] = DateTime.UtcNow.ToString("o");
 
                     string req = serializer.Serialize(hb);
