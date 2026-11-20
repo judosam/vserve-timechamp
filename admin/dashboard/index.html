@@ -26,6 +26,33 @@
       --radius: 12px;
       --radius-sm: 8px;
     }
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --bg-surface: #ffffff;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --card-hover: #f1f5f9;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-glow: rgba(37, 99, 235, 0.15);
+      --productive: #059669;
+      --productive-glow: rgba(5, 150, 105, 0.15);
+      --unproductive: #e11d48;
+      --neutral: #0284c7;
+      --warning: #d97706;
+      --idle: #94a3b8;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif; }
     body { background-color: var(--bg); color: var(--text); padding: 20px 28px; min-height: 100vh; overflow-x: hidden; }
 
@@ -289,6 +316,11 @@
         Refresh
       </button>
 
+      <!-- Theme Toggle (Dark / Light) -->
+      <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode" style="border-radius:20px; font-size:0.8rem; padding:6px 12px;">
+        <span id="themeToggleIcon">🌙</span> <span id="themeToggleText">Dark</span>
+      </button>
+
       <!-- Administrator Account Badge & Sign Out -->
       <div class="admin-chip" id="adminHeaderChip">
         <span class="admin-shield">🛡️</span>
@@ -298,7 +330,7 @@
     </div>
   </div>
 
-  <!-- Navigation Tabs (6 Tabs) -->
+  <!-- Navigation Tabs (9 Workforce Tabs) -->
   <div class="nav-tabs">
     <button class="tab-btn active" onclick="switchTab('live')">
       <span>🟢</span> Live Workforce Pulse
@@ -312,12 +344,71 @@
     <button class="tab-btn" onclick="switchTab('reports')">
       <span>⏱️</span> Shift Timesheets
     </button>
+    <button class="tab-btn" onclick="switchTab('shifts')">
+      <span>📅</span> Shifts & Rostering
+    </button>
+    <button class="tab-btn" onclick="switchTab('leaves')">
+      <span>🏖️</span> Leave Management
+    </button>
+    <button class="tab-btn" onclick="switchTab('corrections')">
+      <span>📝</span> Attendance Corrections
+    </button>
     <button class="tab-btn" onclick="switchTab('users')">
       <span>👤</span> Employee Logins & Directory
     </button>
     <button class="tab-btn" onclick="switchTab('policies')">
       <span>⚙️</span> Fleet Policies & Rules
     </button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- REAL-TIME CLOCK-IN / CLOCK-OUT & BREAK MANAGEMENT HUD                 -->
+  <!-- ===================================================================== -->
+  <div id="clockHud" class="clock-hud" style="margin-bottom: 22px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div id="hudAvatar" style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #10b981); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.05rem; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">TC</div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span id="hudUserName" style="font-weight: 700; font-size: 1.05rem; color: var(--text);">Samuel P</span>
+          <span id="hudStatus" class="status-badge offline" style="font-size:0.72rem; padding: 3px 8px; border-radius: 12px; font-weight: 700;">⚪ OFFLINE</span>
+        </div>
+        <div id="hudShiftInfo" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 3px;">Assigned Shift: General Day Shift (09:00 - 18:00 UTC)</div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+      <div style="text-align: right;">
+        <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Today's Session</div>
+        <div id="hudTimer" class="timer-digits" style="font-family: 'Consolas', monospace; font-size: 1.6rem; font-weight: 800; color: #38bdf8; letter-spacing: 0.5px;">00:00:00</div>
+      </div>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <button id="btnClockIn" class="btn-success" onclick="handleHudClockIn()" style="padding: 8px 16px;">
+          <span>▶</span> Clock In
+        </button>
+
+        <button id="btnBreakLunch" class="btn-break" data-break-type="Lunch" onclick="handleHudBreak('Lunch')" disabled style="font-size: 0.78rem; padding: 7px 12px;">
+          🍱 Lunch
+        </button>
+        <button id="btnBreakTea" class="btn-break" data-break-type="Tea" onclick="handleHudBreak('Tea')" disabled style="font-size: 0.78rem; padding: 7px 12px;">
+          ☕ Tea
+        </button>
+        <button id="btnBreakMeeting" class="btn-break" data-break-type="Meeting" onclick="handleHudBreak('Meeting')" disabled style="font-size: 0.78rem; padding: 7px 12px;">
+          👥 Meeting
+        </button>
+        <button id="btnBreakPersonal" class="btn-break" data-break-type="Personal" onclick="handleHudBreak('Personal')" disabled style="font-size: 0.78rem; padding: 7px 12px;">
+          🏃 Personal
+        </button>
+
+        <button id="btnResumeWork" class="btn-primary" onclick="handleHudResumeBreak()" style="display: none; padding: 8px 16px; background: linear-gradient(135deg, #10b981, #059669); border-color: #10b981;">
+          <span>▶</span> Resume Work
+        </button>
+
+        <button id="btnClockOut" class="btn-signout" onclick="handleHudClockOut()" disabled style="padding: 8px 16px; font-size: 0.82rem; border-radius: 8px;">
+          <span>⏹</span> Clock Out
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- ===================================================================== -->
@@ -581,6 +672,163 @@
   </div>
 
   <!-- ===================================================================== -->
+  <!-- TAB 6: SHIFTS & ROSTERING                                             -->
+  <!-- ===================================================================== -->
+  <div id="tab-shifts" style="display:none;">
+    <div class="card">
+      <div class="card-title">
+        <div>
+          <span>Workforce Shift Schedules & Rosters</span>
+          <div style="font-size:0.8rem; color:var(--text-muted); font-weight:normal; margin-top:3px;">
+            Configure day, evening, and cross-midnight overnight shifts with grace minutes and break allowances.
+          </div>
+        </div>
+        <button class="btn-success" onclick="openShiftModal()">+ Create New Shift</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Shift Name</th>
+            <th>Timing (UTC)</th>
+            <th>Type</th>
+            <th>Grace Period</th>
+            <th>Break Allowance</th>
+            <th>Target Work Hours</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="shiftsTableBody">
+          <tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">Loading shifts...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 7: LEAVE MANAGEMENT                                               -->
+  <!-- ===================================================================== -->
+  <div id="tab-leaves" style="display:none;">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Annual / Paid Leave</div>
+        <div class="stat-value text-blue" id="leaveBalAnnual">18.0 Days</div>
+        <div class="stat-sub text-muted">Accrued Yearly Allowance</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sick Leave</div>
+        <div class="stat-value text-green" id="leaveBalSick">12.0 Days</div>
+        <div class="stat-sub text-muted">Health & Medical Recovery</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Casual / Personal Leave</div>
+        <div class="stat-value text-amber" id="leaveBalCasual">8.0 Days</div>
+        <div class="stat-sub text-muted">Short-Notice Personal Leave</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pending Approval Requests</div>
+        <div class="stat-value text-rose" id="leavePendingCount">0</div>
+        <div class="stat-sub text-muted">Awaiting Manager/HR Review</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div>
+          <span>Leave Applications & Approval Workflow</span>
+          <div style="font-size:0.8rem; color:var(--text-muted); font-weight:normal; margin-top:3px;">
+            Submit leave requests, monitor balances, and review team time-off with full audit tracking.
+          </div>
+        </div>
+        <button class="btn-primary" onclick="openLeaveModal()">+ Apply for Leave</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Leave Type</th>
+            <th>Dates</th>
+            <th>Days</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Reviewed By</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="leavesTableBody">
+          <tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">Loading leave records...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 8: ATTENDANCE CORRECTIONS & AUDIT LOGS                            -->
+  <!-- ===================================================================== -->
+  <div id="tab-corrections" style="display:none;">
+    <div class="card">
+      <div class="card-title">
+        <div>
+          <span>Attendance Punch Disputes & Corrections</span>
+          <div style="font-size:0.8rem; color:var(--text-muted); font-weight:normal; margin-top:3px;">
+            Employees can request retroactive punch corrections with automated timesheet recalculation upon HR approval.
+          </div>
+        </div>
+        <button class="btn-primary" onclick="openCorrectionModal()">+ Request Correction</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Session Date</th>
+            <th>Requested In</th>
+            <th>Requested Out</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Resolution</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="correctionsTableBody">
+          <tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">Loading corrections...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Audit Logs Card -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-title">
+        <div>
+          <span>Tamper-Evident Organizational Audit Trail</span>
+          <div style="font-size:0.8rem; color:var(--text-muted); font-weight:normal; margin-top:3px;">
+            Cryptographically logged actions across authentication, employee administration, adjustments, and schedules.
+          </div>
+        </div>
+        <button class="btn-primary" onclick="fetchAuditLogs()">Refresh Audit Trail</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp (UTC)</th>
+            <th>Actor / Username</th>
+            <th>Action Event</th>
+            <th>Target Resource</th>
+            <th>Status</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="auditTableBody">
+          <tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">Loading audit logs...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
   <!-- TAB 6: FLEET POLICIES & RULES                                         -->
   <!-- ===================================================================== -->
   <div id="tab-policies" style="display:none;">
@@ -721,6 +969,136 @@
       <div class="modal-footer">
         <button onclick="closeUserModal()">Cancel</button>
         <button class="btn-success" onclick="saveUserRecord()">Save &amp; Activate Account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: CREATE SHIFT                                                   -->
+  <!-- ===================================================================== -->
+  <div id="shiftModal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="shiftModalTitle">Create New Shift Schedule</h3>
+        <button onclick="closeShiftModal()" style="padding:4px 8px; font-size:0.8rem; background:transparent; border:none; color:var(--text-muted); cursor:pointer;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Shift Name *</label>
+          <input type="text" id="shiftName" placeholder="e.g. Night Engineering Shift" required>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Start Time (HH:MM UTC) *</label>
+            <input type="text" id="shiftStart" placeholder="09:00" value="09:00" required>
+          </div>
+          <div class="form-group">
+            <label>End Time (HH:MM UTC) *</label>
+            <input type="text" id="shiftEnd" placeholder="18:00" value="18:00" required>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Grace Period (Minutes)</label>
+            <input type="number" id="shiftGrace" value="15" min="0" max="60">
+          </div>
+          <div class="form-group">
+            <label>Break Allowance (Minutes)</label>
+            <input type="number" id="shiftBreak" value="60" min="0" max="180">
+          </div>
+        </div>
+
+        <div class="checkbox-group">
+          <input type="checkbox" id="shiftIsOvernight">
+          <label for="shiftIsOvernight">🌙 Overnight Shift (Spans across midnight into the next calendar day)</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeShiftModal()">Cancel</button>
+        <button class="btn-success" onclick="saveShiftRecord()">Save Shift Schedule</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: APPLY FOR LEAVE                                                -->
+  <!-- ===================================================================== -->
+  <div id="leaveModal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Submit Leave Application</h3>
+        <button onclick="closeLeaveModal()" style="padding:4px 8px; font-size:0.8rem; background:transparent; border:none; color:var(--text-muted); cursor:pointer;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Leave Category / Type *</label>
+          <select id="leaveType" style="width:100%;">
+            <option value="ANNUAL">Annual / Paid Leave (Vacation)</option>
+            <option value="SICK">Sick / Medical Leave</option>
+            <option value="CASUAL">Casual / Personal Emergency</option>
+            <option value="UNPAID">Unpaid Leave</option>
+          </select>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Start Date *</label>
+            <input type="date" id="leaveStartDate" required>
+          </div>
+          <div class="form-group">
+            <label>End Date *</label>
+            <input type="date" id="leaveEndDate" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Reason / Comments *</label>
+          <textarea id="leaveReason" rows="3" placeholder="Brief reason for time-off request..." required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeLeaveModal()">Cancel</button>
+        <button class="btn-primary" onclick="submitLeaveApplication()">Submit Leave Request</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: ATTENDANCE CORRECTION REQUEST                                  -->
+  <!-- ===================================================================== -->
+  <div id="correctionModal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Request Attendance Punch Correction</h3>
+        <button onclick="closeCorrectionModal()" style="padding:4px 8px; font-size:0.8rem; background:transparent; border:none; color:var(--text-muted); cursor:pointer;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Session Work Date *</label>
+          <input type="date" id="corrDate" required>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Corrected Clock In (YYYY-MM-DDTHH:MM:SSZ) *</label>
+            <input type="text" id="corrClockIn" placeholder="2026-11-20T09:00:00Z" required>
+          </div>
+          <div class="form-group">
+            <label>Corrected Clock Out (YYYY-MM-DDTHH:MM:SSZ) *</label>
+            <input type="text" id="corrClockOut" placeholder="2026-11-20T18:00:00Z" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Dispute Justification & Reason *</label>
+          <textarea id="corrReason" rows="3" placeholder="Explain missing punch, power outage, biometric sync lag..." required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeCorrectionModal()">Cancel</button>
+        <button class="btn-primary" onclick="submitCorrectionRequest()">Submit Correction</button>
       </div>
     </div>
   </div>
@@ -974,19 +1352,24 @@
     function switchTab(tabId) {
       activeTab = tabId;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('#tab-live, #tab-analytics, #tab-devices, #tab-reports, #tab-users, #tab-policies').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('#tab-live, #tab-analytics, #tab-devices, #tab-reports, #tab-shifts, #tab-leaves, #tab-corrections, #tab-users, #tab-policies').forEach(el => el.style.display = 'none');
 
-      const tabs = ['live', 'analytics', 'devices', 'reports', 'users', 'policies'];
+      const tabs = ['live', 'analytics', 'devices', 'reports', 'shifts', 'leaves', 'corrections', 'users', 'policies'];
       const idx = tabs.indexOf(tabId);
       if (idx >= 0) {
-        document.querySelectorAll('.tab-btn')[idx].classList.add('active');
-        document.getElementById('tab-' + tabId).style.display = 'block';
+        const btn = document.querySelectorAll('.tab-btn')[idx];
+        if (btn) btn.classList.add('active');
+        const target = document.getElementById('tab-' + tabId);
+        if (target) target.style.display = 'block';
       }
 
       if (tabId === 'live') fetchLiveTelemetry();
       else if (tabId === 'analytics') fetchAnalytics();
       else if (tabId === 'devices') fetchDevicesList();
       else if (tabId === 'reports') fetchReportRecords();
+      else if (tabId === 'shifts') fetchShiftsList();
+      else if (tabId === 'leaves') fetchLeavesList();
+      else if (tabId === 'corrections') { fetchCorrectionsList(); fetchAuditLogs(); }
       else if (tabId === 'users') fetchUsers();
       else if (tabId === 'policies') loadFleetConfigurations();
     }
@@ -1785,9 +2168,575 @@
       }
     }
 
+    // =========================================================================
+    // THEME ENGINE (DARK / LIGHT MODE & LOCALSTORAGE PERSISTENCE)
+    // =========================================================================
+    function initTheme() {
+      const saved = localStorage.getItem('vt_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+      updateThemeButton(saved);
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('vt_theme', next);
+      updateThemeButton(next);
+      showToast(`Switched to ${next === 'dark' ? 'Dark' : 'Light'} theme.`);
+    }
+
+    function updateThemeButton(theme) {
+      const icon = document.getElementById('themeToggleIcon');
+      const txt = document.getElementById('themeToggleText');
+      if (icon && txt) {
+        if (theme === 'light') {
+          icon.innerText = '☀️';
+          txt.innerText = 'Light';
+        } else {
+          icon.innerText = '🌙';
+          txt.innerText = 'Dark';
+        }
+      }
+    }
+
+    // =========================================================================
+    // REAL-TIME CLOCK-IN / CLOCK-OUT & BREAK MANAGEMENT HUD
+    // =========================================================================
+    let hudTimerInterval = null;
+    let activeHudSession = null;
+    let activeHudBreak = null;
+    let hudElapsedSeconds = 0;
+
+    async function initClockHud() {
+      const user = getAdminUser();
+      if (user) {
+        const nameEl = document.getElementById('hudUserName');
+        const avatarEl = document.getElementById('hudAvatar');
+        if (nameEl) nameEl.innerText = user.displayName || user.username;
+        if (avatarEl) {
+          const parts = (user.displayName || user.username).split(' ');
+          avatarEl.innerText = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : (user.username.slice(0, 2)).toUpperCase();
+        }
+      }
+      await fetchActiveHudSession();
+    }
+
+    async function fetchActiveHudSession() {
+      try {
+        const res = await apiFetch('/api/attendance/status');
+        if (res.ok) {
+          const data = await res.json();
+          activeHudSession = data.session || (data.active ? data : null);
+          activeHudBreak = data.activeBreak || null;
+          updateHudUI();
+        }
+      } catch (err) {
+        console.error('Failed to query attendance session status:', err);
+      }
+    }
+
+    function updateHudUI() {
+      const btnIn = document.getElementById('btnClockIn');
+      const btnOut = document.getElementById('btnClockOut');
+      const btnResume = document.getElementById('btnResumeWork');
+      const statusBadge = document.getElementById('hudStatus');
+      const breakBtns = document.querySelectorAll('.btn-break');
+
+      if (activeHudSession && activeHudSession.clock_in) {
+        const inTime = new Date(activeHudSession.clock_in).getTime();
+        const now = Date.now();
+        hudElapsedSeconds = Math.max(0, Math.floor((now - inTime) / 1000));
+
+        if (btnIn) btnIn.disabled = true;
+        if (btnOut) btnOut.disabled = false;
+
+        if (activeHudBreak && !activeHudBreak.end_time) {
+          if (statusBadge) {
+            statusBadge.className = 'status-badge idle';
+            statusBadge.style.color = '#f59e0b';
+            statusBadge.innerText = `⏸ ON BREAK: ${(activeHudBreak.type || 'Break').toUpperCase()}`;
+          }
+          breakBtns.forEach(b => b.disabled = true);
+          if (btnResume) btnResume.style.display = 'inline-flex';
+        } else {
+          if (statusBadge) {
+            statusBadge.className = 'status-badge active';
+            statusBadge.style.color = '#10b981';
+            statusBadge.innerText = '● WORKING (CLOCKED IN)';
+          }
+          breakBtns.forEach(b => b.disabled = false);
+          if (btnResume) btnResume.style.display = 'none';
+        }
+
+        if (!hudTimerInterval) {
+          hudTimerInterval = setInterval(() => {
+            hudElapsedSeconds++;
+            const tEl = document.getElementById('hudTimer');
+            if (tEl) tEl.innerText = fmtHMS(hudElapsedSeconds);
+          }, 1000);
+        }
+      } else {
+        if (btnIn) btnIn.disabled = false;
+        if (btnOut) btnOut.disabled = true;
+        if (btnResume) btnResume.style.display = 'none';
+        breakBtns.forEach(b => b.disabled = true);
+        if (statusBadge) {
+          statusBadge.className = 'status-badge offline';
+          statusBadge.style.color = 'var(--text-muted)';
+          statusBadge.innerText = '⚪ OFFLINE';
+        }
+        if (hudTimerInterval) {
+          clearInterval(hudTimerInterval);
+          hudTimerInterval = null;
+        }
+        const tEl = document.getElementById('hudTimer');
+        if (tEl) tEl.innerText = '00:00:00';
+      }
+    }
+
+    async function handleHudClockIn() {
+      try {
+        const res = await apiFetch('/api/attendance/clock-in', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: 'WEB' })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Clocked in successfully! Work session started.');
+          await fetchActiveHudSession();
+          fetchLiveTelemetry();
+        } else {
+          alert(data.error || 'Clock-in failed.');
+        }
+      } catch (err) {
+        alert('Network error during clock-in: ' + err.message);
+      }
+    }
+
+    async function handleHudClockOut() {
+      if (!confirm('Are you sure you want to clock out and end your working session?')) return;
+      try {
+        const res = await apiFetch('/api/attendance/clock-out', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: 'WEB' })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`Clocked out! Working session completed (${data.effectiveWorkHours || ''} hrs).`);
+          activeHudSession = null;
+          activeHudBreak = null;
+          updateHudUI();
+          fetchLiveTelemetry();
+        } else {
+          alert(data.error || 'Clock-out failed.');
+        }
+      } catch (err) {
+        alert('Network error during clock-out: ' + err.message);
+      }
+    }
+
+    async function handleHudBreak(type) {
+      try {
+        const res = await apiFetch('/api/attendance/breaks/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`${type} break started.`);
+          await fetchActiveHudSession();
+        } else {
+          alert(data.error || 'Failed to start break.');
+        }
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      }
+    }
+
+    async function handleHudResumeBreak() {
+      try {
+        const res = await apiFetch('/api/attendance/breaks/end', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Break concluded. Working time resumed.');
+          await fetchActiveHudSession();
+        } else {
+          alert(data.error || 'Failed to end break.');
+        }
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      }
+    }
+
+    // =========================================================================
+    // SHIFT MANAGEMENT & ROSTERING
+    // =========================================================================
+    let currentShifts = [];
+
+    async function fetchShiftsList() {
+      try {
+        const res = await apiFetch('/api/shifts');
+        if (res.ok) {
+          currentShifts = await res.json();
+          renderShiftsTable();
+        }
+      } catch (err) {
+        console.error('Failed to fetch shifts:', err);
+      }
+    }
+
+    function renderShiftsTable() {
+      const tbody = document.getElementById('shiftsTableBody');
+      if (!tbody) return;
+      if (!currentShifts || currentShifts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">No shifts defined yet. Click "+ Create New Shift" to add your first shift schedule.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = currentShifts.map(s => `
+        <tr>
+          <td><strong>${escapeHtml(s.name)}</strong></td>
+          <td><code style="color:#38bdf8;">${s.start_time} - ${s.end_time}</code></td>
+          <td>${s.is_overnight ? '<span style="color:#a855f7; font-weight:700;">🌙 Overnight</span>' : '<span style="color:#38bdf8; font-weight:700;">☀️ Regular</span>'}</td>
+          <td>${s.grace_minutes || 15} mins</td>
+          <td>${s.break_allowance_minutes || 60} mins</td>
+          <td>${s.target_hours || 8.0} hrs</td>
+          <td><span class="status-badge active">Active</span></td>
+          <td>
+            <button class="btn-primary" style="padding:4px 10px; font-size:0.75rem;" onclick="showToast('Shift assigned by default')">Assign</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openShiftModal() {
+      const modal = document.getElementById('shiftModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeShiftModal() {
+      const modal = document.getElementById('shiftModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function saveShiftRecord() {
+      const name = document.getElementById('shiftName')?.value?.trim();
+      const startTime = document.getElementById('shiftStart')?.value?.trim();
+      const endTime = document.getElementById('shiftEnd')?.value?.trim();
+      const graceMinutes = parseInt(document.getElementById('shiftGrace')?.value || '15', 10);
+      const breakAllowance = parseInt(document.getElementById('shiftBreak')?.value || '60', 10);
+      const isOvernight = document.getElementById('shiftIsOvernight')?.checked ? 1 : 0;
+
+      if (!name || !startTime || !endTime) {
+        alert('Please fill out Shift Name, Start Time, and End Time.');
+        return;
+      }
+
+      try {
+        const res = await apiFetch('/api/shifts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, startTime, endTime, graceMinutes, breakAllowanceMinutes: breakAllowance, isOvernight })
+        });
+        if (res.ok) {
+          showToast(`Shift "${name}" created successfully.`);
+          closeShiftModal();
+          fetchShiftsList();
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Failed to create shift.');
+        }
+      } catch (e) {
+        alert('Network error: ' + e.message);
+      }
+    }
+
+    // =========================================================================
+    // LEAVE MANAGEMENT & BALANCES
+    // =========================================================================
+    let currentLeaves = [];
+
+    async function fetchLeavesList() {
+      try {
+        const balRes = await apiFetch('/api/leaves/balances');
+        if (balRes.ok) {
+          const balances = await balRes.json();
+          if (balances && typeof balances === 'object') {
+            const annual = document.getElementById('leaveBalAnnual');
+            const sick = document.getElementById('leaveBalSick');
+            const casual = document.getElementById('leaveBalCasual');
+            if (annual && balances.ANNUAL !== undefined) annual.innerText = `${balances.ANNUAL} Days`;
+            if (sick && balances.SICK !== undefined) sick.innerText = `${balances.SICK} Days`;
+            if (casual && balances.CASUAL !== undefined) casual.innerText = `${balances.CASUAL} Days`;
+          }
+        }
+
+        const res = await apiFetch('/api/leaves');
+        if (res.ok) {
+          currentLeaves = await res.json();
+          renderLeavesTable();
+        }
+      } catch (err) {
+        console.error('Failed to fetch leaves:', err);
+      }
+    }
+
+    function renderLeavesTable() {
+      const tbody = document.getElementById('leavesTableBody');
+      const pendingEl = document.getElementById('leavePendingCount');
+      if (!tbody) return;
+
+      const pending = currentLeaves.filter(l => (l.status || '').toUpperCase() === 'PENDING').length;
+      if (pendingEl) pendingEl.innerText = pending;
+
+      if (!currentLeaves || currentLeaves.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">No leave applications recorded. Click "+ Apply for Leave" to submit a time-off request.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = currentLeaves.map(l => {
+        const st = (l.status || 'PENDING').toUpperCase();
+        const badgeClass = st === 'APPROVED' ? 'active' : (st === 'REJECTED' ? 'offline' : 'idle');
+        return `
+          <tr>
+            <td><strong>${escapeHtml(l.employee_name || l.username || 'Employee')}</strong></td>
+            <td><span style="font-weight:700; color:#38bdf8;">${escapeHtml(l.leave_type || 'ANNUAL')}</span></td>
+            <td><code>${l.start_date} → ${l.end_date}</code></td>
+            <td>${l.days || 1} day(s)</td>
+            <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(l.reason || 'Personal')}</td>
+            <td><span class="status-badge ${badgeClass}">${st}</span></td>
+            <td>${escapeHtml(l.reviewed_by_name || l.reviewed_by || '—')}</td>
+            <td>
+              ${st === 'PENDING' ? `
+                <div style="display:flex; gap:6px;">
+                  <button class="btn-success" style="padding:3px 8px; font-size:0.75rem;" onclick="reviewLeaveRequest('${l.id}', 'APPROVED')">Approve</button>
+                  <button class="btn-signout" style="padding:3px 8px; font-size:0.75rem;" onclick="reviewLeaveRequest('${l.id}', 'REJECTED')">Reject</button>
+                </div>
+              ` : `<span style="font-size:0.75rem; color:var(--text-muted);">Concluded</span>`}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openLeaveModal() {
+      const modal = document.getElementById('leaveModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeLeaveModal() {
+      const modal = document.getElementById('leaveModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function submitLeaveApplication() {
+      const leaveType = document.getElementById('leaveType')?.value;
+      const startDate = document.getElementById('leaveStartDate')?.value;
+      const endDate = document.getElementById('leaveEndDate')?.value;
+      const reason = document.getElementById('leaveReason')?.value?.trim();
+
+      if (!startDate || !endDate || !reason) {
+        alert('Please fill out Start Date, End Date, and Reason.');
+        return;
+      }
+
+      try {
+        const res = await apiFetch('/api/leaves', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leaveType, startDate, endDate, reason })
+        });
+        if (res.ok) {
+          showToast('Leave request submitted successfully.');
+          closeLeaveModal();
+          fetchLeavesList();
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Failed to submit leave.');
+        }
+      } catch (e) {
+        alert('Network error: ' + e.message);
+      }
+    }
+
+    async function reviewLeaveRequest(id, status) {
+      const reason = status === 'REJECTED' ? prompt('Enter reason for rejection:') : 'Approved by administrator';
+      if (status === 'REJECTED' && reason === null) return;
+
+      try {
+        const res = await apiFetch(`/api/leaves/${id}/review`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status, reviewReason: reason || '' })
+        });
+        if (res.ok) {
+          showToast(`Leave request ${status.toLowerCase()}.`);
+          fetchLeavesList();
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Failed to review leave.');
+        }
+      } catch (e) {
+        alert('Network error: ' + e.message);
+      }
+    }
+
+    // =========================================================================
+    // ATTENDANCE CORRECTIONS & AUDIT LOGS
+    // =========================================================================
+    let currentCorrections = [];
+    let currentAuditLogs = [];
+
+    async function fetchCorrectionsList() {
+      try {
+        const res = await apiFetch('/api/corrections');
+        if (res.ok) {
+          currentCorrections = await res.json();
+          renderCorrectionsTable();
+        }
+      } catch (err) {
+        console.error('Failed to fetch corrections:', err);
+      }
+    }
+
+    function renderCorrectionsTable() {
+      const tbody = document.getElementById('correctionsTableBody');
+      if (!tbody) return;
+      if (!currentCorrections || currentCorrections.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:32px; color:var(--text-muted);">No punch dispute corrections submitted.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = currentCorrections.map(c => {
+        const st = (c.status || 'PENDING').toUpperCase();
+        const badgeClass = st === 'APPROVED' ? 'active' : (st === 'REJECTED' ? 'offline' : 'idle');
+        return `
+          <tr>
+            <td><strong>${escapeHtml(c.employee_name || c.username || 'Employee')}</strong></td>
+            <td><code>${c.session_date || 'Today'}</code></td>
+            <td><code style="color:#10b981;">${c.requested_clock_in || '—'}</code></td>
+            <td><code style="color:#f59e0b;">${c.requested_clock_out || '—'}</code></td>
+            <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(c.reason || 'Missing punch')}</td>
+            <td><span class="status-badge ${badgeClass}">${st}</span></td>
+            <td>${escapeHtml(c.review_notes || '—')}</td>
+            <td>
+              ${st === 'PENDING' ? `
+                <div style="display:flex; gap:6px;">
+                  <button class="btn-success" style="padding:3px 8px; font-size:0.75rem;" onclick="reviewCorrectionRequest('${c.id}', 'APPROVED')">Approve</button>
+                  <button class="btn-signout" style="padding:3px 8px; font-size:0.75rem;" onclick="reviewCorrectionRequest('${c.id}', 'REJECTED')">Reject</button>
+                </div>
+              ` : `<span style="font-size:0.75rem; color:var(--text-muted);">Concluded</span>`}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openCorrectionModal() {
+      const modal = document.getElementById('correctionModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeCorrectionModal() {
+      const modal = document.getElementById('correctionModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function submitCorrectionRequest() {
+      const date = document.getElementById('corrDate')?.value;
+      const requestedClockIn = document.getElementById('corrClockIn')?.value?.trim();
+      const requestedClockOut = document.getElementById('corrClockOut')?.value?.trim();
+      const reason = document.getElementById('corrReason')?.value?.trim();
+
+      if (!date || !requestedClockIn || !requestedClockOut || !reason) {
+        alert('Please fill out Date, Corrected Clock In, Corrected Clock Out, and Reason.');
+        return;
+      }
+
+      try {
+        const res = await apiFetch('/api/corrections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionDate: date, requestedClockIn, requestedClockOut, reason })
+        });
+        if (res.ok) {
+          showToast('Attendance punch correction request submitted.');
+          closeCorrectionModal();
+          fetchCorrectionsList();
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Failed to submit correction.');
+        }
+      } catch (e) {
+        alert('Network error: ' + e.message);
+      }
+    }
+
+    async function reviewCorrectionRequest(id, status) {
+      const notes = prompt(`Enter review notes for ${status}:`) || 'Reviewed by administrator';
+      try {
+        const res = await apiFetch(`/api/corrections/${id}/review`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status, reviewNotes: notes })
+        });
+        if (res.ok) {
+          showToast(`Correction ${status.toLowerCase()} and timesheet adjusted.`);
+          fetchCorrectionsList();
+          fetchAuditLogs();
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Failed to review correction.');
+        }
+      } catch (e) {
+        alert('Network error: ' + e.message);
+      }
+    }
+
+    async function fetchAuditLogs() {
+      try {
+        const res = await apiFetch('/api/audits');
+        if (res.ok) {
+          currentAuditLogs = await res.json();
+          renderAuditTable();
+        }
+      } catch (err) {
+        console.error('Failed to fetch audit logs:', err);
+      }
+    }
+
+    function renderAuditTable() {
+      const tbody = document.getElementById('auditTableBody');
+      if (!tbody) return;
+      if (!currentAuditLogs || currentAuditLogs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);">No audit events recorded yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = currentAuditLogs.slice(0, 50).map(a => `
+        <tr>
+          <td><code style="color:#94a3b8;">${new Date(a.created_at || Date.now()).toISOString().replace('T', ' ').slice(0, 19)}</code></td>
+          <td><strong>${escapeHtml(a.actor_username || 'SYSTEM')}</strong></td>
+          <td><span style="font-weight:700; color:#38bdf8;">${escapeHtml(a.action || 'EVENT')}</span></td>
+          <td><code>${escapeHtml(a.resource || '—')}</code></td>
+          <td><span class="status-badge ${a.status === 'SUCCESS' ? 'active' : 'offline'}">${escapeHtml(a.status || 'OK')}</span></td>
+          <td style="max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.78rem; color:var(--text-muted);">${escapeHtml(a.details || '—')}</td>
+        </tr>
+      `).join('');
+    }
+
     // --- INITIALIZATION & AUTO-POLLING LOOP ---
     let pollingInterval = null;
     function initDashboard() {
+      initTheme();
+      initClockHud();
+
       const today = new Date().toISOString().slice(0, 10);
       const dateInput = document.getElementById('ssDateFilter');
       if (dateInput) dateInput.value = today;
@@ -1808,6 +2757,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
+      initTheme();
       const isAuth = await checkAdminSession();
       if (isAuth) {
         initDashboard();

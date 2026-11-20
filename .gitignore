@@ -20,6 +20,10 @@ session.json
 node_modules/
 package-lock.json
 
+# SQLite runtime databases
+admin/data/*.db*
+test-results/
+
 # OS and Editor files
 .DS_Store
 Thumbs.db
