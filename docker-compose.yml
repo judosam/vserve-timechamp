@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  vserve-timechamp:
+    build: .
+    image: vserve-timechamp:latest
+    container_name: vserve-timechamp
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - LOCAL_DATA_DIR=/app/data
+    volumes:
+      - ./data:/app/data
+      - ./admin/users.json:/app/admin/users.json

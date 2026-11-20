@@ -283,7 +283,7 @@ namespace VserveTimeChamp {
         private string currentUser = "";
         private string currentDisplayName = "";
         private string currentDepartment = "Engineering";
-        private string serverUrl = "http://localhost:3000";
+        private string serverUrl = "http://34.93.182.141:3000";
         private long activeSeconds = 0;
         private long idleSeconds = 0;
         private long productiveSeconds = 0;
@@ -907,11 +907,6 @@ namespace VserveTimeChamp {
                 currentClassification = ClassifyActivity(currentApp, currentUrl);
             }
 
-            // Periodic screenshot capture every 300 ticks (5 minutes) while active
-            if (heartbeatTicks % 300 == 0 && isTracking && !isIdle) {
-                ThreadPool.QueueUserWorkItem(s => CaptureScreenshot());
-            }
-
             // 4. Update UI labels
             lblTimer.Text = FormatHMS(activeSeconds);
             lblSummaryActive.Text = "Active: " + FormatHMS(activeSeconds);
@@ -975,34 +970,7 @@ namespace VserveTimeChamp {
         }
 
         private void CaptureScreenshot() {
-            try {
-                string today = DateTime.UtcNow.ToString("yyyy-MM-dd");
-                string ssDir = Path.Combine(targetDir, "screenshots", today);
-                if (!Directory.Exists(ssDir)) Directory.CreateDirectory(ssDir);
-
-                string timeCode = DateTime.UtcNow.ToString("HHmmss");
-                string ssPath = Path.Combine(ssDir, "ss_" + timeCode + ".jpg");
-
-                Rectangle bounds = Screen.PrimaryScreen.Bounds;
-                int w = Math.Max(100, bounds.Width);
-                int h = Math.Max(100, bounds.Height);
-                using (Bitmap bmp = new Bitmap(w, h)) {
-                    using (Graphics g = Graphics.FromImage(bmp)) {
-                        try {
-                            g.CopyFromScreen(0, 0, 0, 0, new Size(w, h));
-                        } catch {
-                            // Workstation screen is locked or DC unavailable
-                            g.Clear(Color.FromArgb(15, 23, 42));
-                            using (Brush brush = new SolidBrush(Color.FromArgb(148, 163, 184))) {
-                                using (Font font = new Font("Segoe UI", 12f, FontStyle.Bold)) {
-                                    g.DrawString("Workstation Locked / Display Inactive\n" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), font, brush, 40, 40);
-                                }
-                            }
-                        }
-                    }
-                    bmp.Save(ssPath, System.Drawing.Imaging.ImageFormat.Jpeg);
-                }
-            } catch {}
+            // Screenshots disabled per fleet policy ("No Need Screenshot Save")
         }
 
         private void TogglePauseTracking() {
@@ -1071,7 +1039,7 @@ namespace VserveTimeChamp {
 
         private void FetchUsersFromServer() {
             serverUrl = txtServerUrl.Text.Trim();
-            if (string.IsNullOrEmpty(serverUrl)) serverUrl = "http://localhost:3000";
+            if (string.IsNullOrEmpty(serverUrl)) serverUrl = "http://34.93.182.141:3000";
 
             lblLoginStatus.Text = "Connecting to " + serverUrl + "...";
             lblLoginStatus.ForeColor = Color.FromArgb(56, 189, 248);

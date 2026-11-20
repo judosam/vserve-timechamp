@@ -15,7 +15,11 @@ const PORT = process.env.PORT || 3000;
 const ROOT_DIR = path.resolve(__dirname, '..');
 const DASHBOARD_DIR = path.join(__dirname, 'dashboard');
 const CONFIG_FILE = path.join(ROOT_DIR, 'config.default.json');
-const LOCAL_DATA_DIR = path.join(process.env.LOCALAPPDATA || '', 'VserveTimeChamp');
+const LOCAL_DATA_DIR = process.env.LOCAL_DATA_DIR || (process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'VserveTimeChamp') : path.join(ROOT_DIR, 'data'));
+
+if (!fs.existsSync(LOCAL_DATA_DIR)) {
+  try { fs.mkdirSync(LOCAL_DATA_DIR, { recursive: true }); } catch {}
+}
 
 const USERS_FILE = path.join(__dirname, 'users.json');
 
@@ -77,111 +81,13 @@ function requireAdmin(req, res) {
   return sess;
 }
 const SCREENSHOTS_DIR = path.join(LOCAL_DATA_DIR, 'screenshots');
-if (!fs.existsSync(SCREENSHOTS_DIR)) {
-  try { fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true }); } catch {}
-}
 
 function getScreenshotsList() {
-  const list = [];
-  if (!fs.existsSync(SCREENSHOTS_DIR)) return list;
-
-  try {
-    const dateFolders = fs.readdirSync(SCREENSHOTS_DIR).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
-    for (const date of dateFolders) {
-      const dirPath = path.join(SCREENSHOTS_DIR, date);
-      try {
-        const files = fs.readdirSync(dirPath).filter(f => /\.(jpe?g|png)$/i.test(f));
-        for (const file of files) {
-          const filePath = path.join(dirPath, file);
-          const stat = fs.statSync(filePath);
-          let timeStr = '';
-          const match = file.match(/ss_(\d{2})(\d{2})(\d{2})/i);
-          if (match) {
-            timeStr = `${match[1]}:${match[2]}:${match[3]}`;
-          } else {
-            timeStr = stat.mtime.toTimeString().slice(0, 8);
-          }
-
-          list.push({
-            id: `${date}_${file}`,
-            filename: file,
-            date: date,
-            time: timeStr,
-            timestamp: stat.mtime.toISOString(),
-            sizeBytes: stat.size,
-            url: `/api/screenshots/${date}/${encodeURIComponent(file)}`
-          });
-        }
-      } catch {}
-    }
-  } catch {}
-
-  list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  return list;
+  return []; // Screenshots disabled by policy (No Need Screenshot Save)
 }
 
 function captureOnDemandScreenshot() {
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    const dateDir = path.join(SCREENSHOTS_DIR, today);
-    if (!fs.existsSync(dateDir)) fs.mkdirSync(dateDir, { recursive: true });
-
-    const now = new Date();
-    const timeCode = String(now.getHours()).padStart(2, '0') +
-                     String(now.getMinutes()).padStart(2, '0') +
-                     String(now.getSeconds()).padStart(2, '0');
-    const fileName = `ss_${timeCode}.jpg`;
-    const destPath = path.join(dateDir, fileName);
-
-    const escapedDest = destPath.replace(/'/g, "''");
-    const psScript = `
-Add-Type -AssemblyName System.Windows.Forms,System.Drawing
-$b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-$w = [Math]::Max(100, $b.Width)
-$h = [Math]::Max(100, $b.Height)
-$bmp = New-Object System.Drawing.Bitmap $w, $h
-$g = [System.Drawing.Graphics]::FromImage($bmp)
-try {
-    $g.CopyFromScreen(0, 0, 0, 0, (New-Object System.Drawing.Size $w, $h))
-} catch {
-    # Workstation screen is locked, display sleeping, or non-interactive window station
-    $g.Clear([System.Drawing.Color]::FromArgb(15, 23, 42))
-    $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(148, 163, 184))
-    $font = New-Object System.Drawing.Font('Segoe UI', 13, [System.Drawing.FontStyle]::Bold)
-    $msg = 'Workstation Locked / Display Inactive' + [char]10 + 'Captured: ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
-    $g.DrawString($msg, $font, $brush, 40, 40)
-    $brush.Dispose()
-    $font.Dispose()
-}
-$bmp.Save('${escapedDest}', [System.Drawing.Imaging.ImageFormat]::Jpeg)
-$g.Dispose()
-$bmp.Dispose()
-`;
-    const b64 = Buffer.from(psScript, 'utf16le').toString('base64');
-    execSync(`powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${b64}`, {
-      timeout: 10000,
-      stdio: ['pipe', 'pipe', 'ignore']
-    });
-
-    if (fs.existsSync(destPath)) {
-      const stat = fs.statSync(destPath);
-      return {
-        success: true,
-        screenshot: {
-          id: `${today}_${fileName}`,
-          filename: fileName,
-          date: today,
-          time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`,
-          timestamp: now.toISOString(),
-          sizeBytes: stat.size,
-          url: `/api/screenshots/${today}/${encodeURIComponent(fileName)}`
-        }
-      };
-    }
-  } catch (err) {
-    console.error('Screenshot capture error:', err.message);
-  }
-  return { success: false, error: 'Could not capture screenshot' };
+  return { success: false, disabled: true, error: 'Screenshot capture disabled by administrator policy (No Need Screenshot Save)' };
 }
 
 function recordActivityTelemetry(data) {
@@ -219,6 +125,26 @@ function recordActivityTelemetry(data) {
     }
 
     fs.writeFileSync(actFile, JSON.stringify(act, null, 2), 'utf8');
+  } catch {}
+}
+
+function recordUserStateTelemetry(data) {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const stateFile = path.join(LOCAL_DATA_DIR, `state_${today}.json`);
+    const state = {
+      date: today,
+      user: data.user,
+      machine: data.machine || 'Workstation',
+      status: data.status || 'Active',
+      active_seconds: data.activeSeconds || 0,
+      idle_seconds: data.idleSeconds || 0,
+      productive_seconds: data.productiveSeconds || 0,
+      unproductive_seconds: data.unproductiveSeconds || 0,
+      pause_count: data.pauses || 0,
+      last_flush_utc: data.timestamp || new Date().toISOString()
+    };
+    fs.writeFileSync(stateFile, JSON.stringify(state, null, 2), 'utf8');
   } catch {}
 }
 
@@ -384,6 +310,7 @@ function saveConfig(cfg) {
 
 // Check if agent.ps1 process is actively running
 function isAgentRunning() {
+  if (process.platform !== 'win32') return false;
   try {
     const stdout = execSync('powershell.exe -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match \'agent\\.ps1\' -and $_.CommandLine -notmatch \'-(Status|SingleTick|Stop)\\b\' } | Select-Object -ExpandProperty ProcessId"', { encoding: 'utf8', timeout: 2000 });
     return stdout.trim().length > 0;
@@ -670,6 +597,7 @@ const server = http.createServer((req, res) => {
           if (data.currentApp && data.currentApp !== 'unknown' && data.currentApp !== 'desktop') {
             recordActivityTelemetry(data);
           }
+          recordUserStateTelemetry(data);
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'ok', time: new Date().toISOString() }));
@@ -871,6 +799,10 @@ const server = http.createServer((req, res) => {
         'Content-Length': stat.size,
         'Content-Disposition': 'attachment; filename="vserve-timechamp-setup.exe"'
       });
+      if (req.method === 'HEAD') {
+        res.end();
+        return;
+      }
       fs.createReadStream(exePath).pipe(res);
       return;
     } else {
